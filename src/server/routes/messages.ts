@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import type { CreateMessageRequest } from '../../shared/types.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Get all messages for a chat
 router.get('/chat/:chatId', async (req, res, next) => {

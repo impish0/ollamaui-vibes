@@ -24,12 +24,28 @@ export const useChat = () => {
     loadChats();
   }, []);
 
+  // Load full chat with all messages when currentChatId changes
+  useEffect(() => {
+    if (currentChatId) {
+      loadFullChat(currentChatId);
+    }
+  }, [currentChatId]);
+
   const loadChats = async () => {
     try {
       const fetchedChats = await chatsApi.getAll();
       setChats(fetchedChats);
     } catch (error) {
       console.error('Failed to load chats:', error);
+    }
+  };
+
+  const loadFullChat = async (chatId: string) => {
+    try {
+      const fullChat = await chatsApi.getById(chatId);
+      updateChat(chatId, fullChat);
+    } catch (error) {
+      console.error('Failed to load full chat:', error);
     }
   };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -8,6 +8,8 @@ interface MarkdownProps {
 }
 
 export const Markdown: React.FC<MarkdownProps> = ({ content }) => {
+  const [copiedHash, setCopiedHash] = useState<string | null>(null);
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -34,10 +36,17 @@ export const Markdown: React.FC<MarkdownProps> = ({ content }) => {
                 <button
                   type="button"
                   className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100"
-                  onClick={() => navigator.clipboard.writeText(codeText)}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(codeText);
+                      const hash = codeText.slice(0, 20);
+                      setCopiedHash(hash);
+                      setTimeout(() => setCopiedHash((prev) => (prev === hash ? null : prev)), 1200);
+                    } catch {}
+                  }}
                   aria-label="Copy code"
                 >
-                  Copy
+                  {copiedHash === codeText.slice(0, 20) ? 'Copied' : 'Copy'}
                 </button>
               </div>
               {match && (

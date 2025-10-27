@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import type { CreateSystemPromptRequest, UpdateSystemPromptRequest } from '../../shared/types.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Get all system prompts
 router.get('/', async (_req, res, next) => {

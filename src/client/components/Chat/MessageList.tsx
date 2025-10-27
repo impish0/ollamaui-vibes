@@ -13,6 +13,7 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,6 +42,12 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
         : m.role === 'assistant'
         ? 'bg-gray-700 dark:bg-gray-600'
         : 'bg-purple-600',
+    bubbleClasses:
+      m.role === 'user'
+        ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800'
+        : m.role === 'assistant'
+        ? 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800'
+        : 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
   });
 
   const timeLabel = (dateStr: string) => {
@@ -67,10 +74,7 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
             {messages.map((message) => {
               const meta = roleMeta(message);
               return (
-                <div
-                  key={message.id}
-                  className={`py-4 ${message.role === 'user' ? 'bg-gray-50 dark:bg-gray-900/50' : ''}`}
-                >
+                <div key={message.id} className="py-4">
                   <div className="max-w-4xl mx-auto">
                     <div className="flex items-start gap-3">
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full ${meta.avatarClass} text-white flex items-center justify-center font-semibold`}
@@ -79,7 +83,7 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
                         {meta.avatarChar}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-1 px-1">
                           <span className="font-medium uppercase tracking-wide">{meta.label}</span>
                           {message.model && (
                             <span className="text-gray-500 dark:text-gray-500">{message.model}</span>
@@ -87,15 +91,26 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
                           <span className="text-gray-400">•</span>
                           <span className="text-gray-500">{timeLabel(message.createdAt)}</span>
                           <button
-                            className="ml-auto px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
-                            onClick={() => navigator.clipboard.writeText(message.content)}
+                            className="ml-auto px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-60"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(message.content);
+                                setCopiedMessageId(message.id);
+                                setTimeout(() => setCopiedMessageId((prev) => (prev === message.id ? null : prev)), 1200);
+                              } catch {}
+                            }}
+                            disabled={copiedMessageId === message.id}
                             title="Copy message"
                           >
-                            Copy
+                            {copiedMessageId === message.id ? 'Copied' : 'Copy'}
                           </button>
                         </div>
-                        <div className="prose dark:prose-invert prose-sm max-w-none">
-                          <Markdown content={message.content} />
+                        <div
+                          className={`inline-block max-w-full rounded-2xl border shadow-sm px-4 py-3 ${meta.bubbleClasses}`}
+                        >
+                          <div className="prose dark:prose-invert prose-sm max-w-none break-words">
+                            <Markdown content={message.content} />
+                          </div>
                         </div>
                       </div>
                     </div>

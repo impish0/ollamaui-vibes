@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db.js';
 import { ollamaService } from '../services/ollamaService.js';
 import { titleGenerator } from '../services/titleGenerator.js';
 import { ApiError } from '../middleware/errorHandler.js';
@@ -7,7 +7,6 @@ import { streamLimiter } from '../middleware/security.js';
 import type { ChatCompletionRequest } from '../../shared/types.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Get available models
 router.get('/models', async (_req, res, next) => {
@@ -135,6 +134,8 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }
 
+      console.log(`[Stream Complete] Saving assistant message for chat ${chatId}, length: ${assistantResponse.length}`);
+
       // Save assistant message
       const assistantMessage = await prisma.message.create({
         data: {
@@ -145,11 +146,15 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
         },
       });
 
+      console.log(`[Message Saved] Assistant message ID: ${assistantMessage.id}`);
+
       // Update chat model
       await prisma.chat.update({
         where: { id: chatId },
         data: { model },
       });
+
+      console.log(`[Chat Updated] Chat ${chatId} model updated to ${model}`);
 
       // Generate title if this is the first exchange (2 messages: user + assistant)
       const messageCount = await prisma.message.count({

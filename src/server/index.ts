@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './db.js';
 import { ollamaService } from './services/ollamaService.js';
 import { localhostOnly, apiLimiter, sanitizeInput } from './middleware/security.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -10,7 +10,6 @@ import systemPromptsRouter from './routes/systemPrompts.js';
 import ollamaRouter from './routes/ollama.js';
 
 const app = express();
-const prisma = new PrismaClient();
 const PORT = parseInt(process.env.SERVER_PORT || '3001', 10);
 
 // Security middleware

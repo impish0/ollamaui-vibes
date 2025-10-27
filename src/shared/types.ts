@@ -50,6 +50,12 @@ export interface ChatCompletionRequest {
     content: string;
   }>;
   stream: boolean;
+  options?: {
+    num_ctx?: number; // Context window size (e.g., 4096, 8192, 32768)
+    temperature?: number;
+    top_p?: number;
+    top_k?: number;
+  };
 }
 
 export interface StreamChunk {

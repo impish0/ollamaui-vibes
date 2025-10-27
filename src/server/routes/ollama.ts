@@ -120,6 +120,38 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
       content: message,
     });
 
+    // Calculate estimated token count (rough estimate: 1 token ≈ 4 characters)
+    const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
+    const estimatedTokens = Math.ceil(totalChars / 4);
+
+    // Log context information for debugging
+    console.log(`[Context Debug] Chat ${chatId}:`);
+    console.log(`  - Total messages in DB: ${chat.messages.length}`);
+    console.log(`  - Messages being sent to Ollama: ${messages.length}`);
+    console.log(`  - System prompt included: ${!!chat.systemPrompt}`);
+    console.log(`  - Message roles: ${messages.map(m => m.role).join(', ')}`);
+    console.log(`  - Estimated context size: ~${estimatedTokens} tokens`);
+
+    // Determine appropriate context window size based on conversation length
+    // Support models with up to 128K token context windows
+    // Default Ollama context is 2048, which is too small for most conversations
+    let contextWindowSize = 8192; // Start with 8K as baseline (better than default 2K)
+
+    if (estimatedTokens > 6000) {
+      contextWindowSize = 16384; // 16K for medium conversations
+    }
+    if (estimatedTokens > 12000) {
+      contextWindowSize = 32768; // 32K for large conversations
+    }
+    if (estimatedTokens > 24000) {
+      contextWindowSize = 65536; // 64K for very large conversations
+    }
+    if (estimatedTokens > 48000) {
+      contextWindowSize = 131072; // 128K for extremely large conversations
+    }
+
+    console.log(`  - Context window size: ${contextWindowSize} tokens (${(contextWindowSize / 1024).toFixed(0)}K)`);
+
     // Set up SSE
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -128,8 +160,15 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
     let assistantResponse = '';
 
     try {
-      // Stream from Ollama
-      for await (const chunk of ollamaService.streamChat({ model, messages, stream: true })) {
+      // Stream from Ollama with appropriate context window size
+      for await (const chunk of ollamaService.streamChat({
+        model,
+        messages,
+        stream: true,
+        options: {
+          num_ctx: contextWindowSize
+        }
+      })) {
         assistantResponse += chunk;
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }

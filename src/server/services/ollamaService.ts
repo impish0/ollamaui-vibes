@@ -65,16 +65,29 @@ export class OllamaService {
 
   async *streamChat(request: ChatCompletionRequest): AsyncGenerator<string> {
     try {
+      const payload: any = {
+        model: request.model,
+        messages: request.messages,
+        stream: true,
+      };
+
+      // Add options if provided
+      if (request.options) {
+        payload.options = request.options;
+      }
+
+      console.log(`[Ollama Service] Sending ${request.messages.length} messages to Ollama`);
+      console.log(`[Ollama Service] Payload size: ${JSON.stringify(payload).length} bytes`);
+      if (request.options?.num_ctx) {
+        console.log(`[Ollama Service] Context window size: ${request.options.num_ctx}`);
+      }
+
       const response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: request.model,
-          messages: request.messages,
-          stream: true,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

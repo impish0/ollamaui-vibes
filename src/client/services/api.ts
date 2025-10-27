@@ -116,7 +116,8 @@ export const ollamaApi = {
   streamChat: async function* (
     chatId: string,
     model: string,
-    message: string
+    message: string,
+    opts?: { signal?: AbortSignal }
   ): AsyncGenerator<{ content?: string; done?: boolean; error?: string; messageId?: string }> {
     const response = await fetch(`${API_BASE}/ollama/chat/stream`, {
       method: 'POST',
@@ -124,6 +125,7 @@ export const ollamaApi = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ chatId, model, message }),
+      signal: opts?.signal,
     });
 
     if (!response.ok) {

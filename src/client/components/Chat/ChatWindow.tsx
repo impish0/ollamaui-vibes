@@ -11,7 +11,7 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow = ({ chat }: ChatWindowProps) => {
-  const { sendMessage, updateChat, isStreaming, streamingContent } = useChat();
+  const { sendMessage, updateChat, isStreaming, streamingContent, stopStreaming } = useChat();
   const [selectedModel, setSelectedModel] = useState(chat.model);
   const [selectedSystemPromptId, setSelectedSystemPromptId] = useState(
     chat.systemPromptId || undefined
@@ -70,6 +70,14 @@ export const ChatWindow = ({ chat }: ChatWindowProps) => {
               onModelChange={handleModelChange}
               disabled={isStreaming}
             />
+            {isStreaming && (
+              <button
+                onClick={stopStreaming}
+                className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+              >
+                Stop
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -65,10 +65,13 @@ export const useChat = () => {
     }
   };
 
+  let abortController: AbortController | null = null;
+
   const sendMessage = async (chatId: string, message: string, model: string) => {
     try {
       setIsStreaming(true);
       resetStreamingContent();
+      abortController = new AbortController();
 
       // Add user message to UI
       const userMessage = {
@@ -82,7 +85,7 @@ export const useChat = () => {
       addMessage(chatId, userMessage);
 
       // Stream response from Ollama
-      for await (const chunk of ollamaApi.streamChat(chatId, model, message)) {
+      for await (const chunk of ollamaApi.streamChat(chatId, model, message, { signal: abortController.signal })) {
         if (chunk.content) {
           appendStreamingContent(chunk.content);
         }
@@ -92,6 +95,7 @@ export const useChat = () => {
           updateChat(chatId, updatedChat);
           resetStreamingContent();
           setIsStreaming(false);
+          abortController = null;
         }
         if (chunk.error) {
           console.error('Stream error:', chunk.error);
@@ -108,6 +112,12 @@ export const useChat = () => {
     }
   };
 
+  const stopStreaming = () => {
+    try {
+      abortController?.abort();
+    } catch {}
+  };
+
   const currentChat = chats.find((chat) => chat.id === currentChatId);
 
   return {
@@ -122,5 +132,6 @@ export const useChat = () => {
     deleteChat,
     setCurrentChatId,
     sendMessage,
+    stopStreaming,
   };
 };

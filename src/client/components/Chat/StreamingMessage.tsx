@@ -1,6 +1,4 @@
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
+import Markdown from './Markdown';
 
 interface StreamingMessageProps {
   content: string;
@@ -15,15 +13,7 @@ export const StreamingMessage = ({ content, isStreaming }: StreamingMessageProps
           Assistant
         </div>
         <div className="prose dark:prose-invert prose-sm max-w-none">
-          {content ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
-              className="markdown"
-            >
-              {content}
-            </ReactMarkdown>
-          ) : null}
+          {content ? <Markdown content={content} /> : null}
           {isStreaming && (
             <span className="inline-flex items-center ml-1">
               <span className="typing-indicator flex gap-1">

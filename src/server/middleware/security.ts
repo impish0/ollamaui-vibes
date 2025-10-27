@@ -1,22 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 
-// Rate limiter for API endpoints
+// Rate limiter for API endpoints (generous limits for local development)
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 1000, // Limit each IP to 1000 requests per minute (very generous for localhost)
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many requests from this IP, please try again later.',
+  skip: (req) => {
+    // Skip rate limiting in development for localhost
+    if (process.env.NODE_ENV === 'development') {
+      const ip = req.ip || req.socket.remoteAddress;
+      return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+    }
+    return false;
+  },
 });
 
 // Stricter rate limiter for streaming endpoints
 export const streamLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // Limit each IP to 30 stream requests per minute
+  max: 100, // Limit each IP to 100 stream requests per minute
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many stream requests, please try again later.',
+  skip: (req) => {
+    // Skip rate limiting in development for localhost
+    if (process.env.NODE_ENV === 'development') {
+      const ip = req.ip || req.socket.remoteAddress;
+      return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+    }
+    return false;
+  },
 });
 
 // Middleware to ensure requests come from localhost only

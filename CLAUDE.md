@@ -112,6 +112,7 @@ See [.env.example](.env.example):
 - `SERVER_PORT` - Express server port (default: `3001`)
 - `NODE_ENV` - Environment mode
 - `DATABASE_URL` - Prisma SQLite connection string (default: `file:./dev.db`)
+  - Note: Path is relative to the `prisma/` directory, so `file:./dev.db` creates the database at `prisma/dev.db`
 
 ## Development Workflow
 
@@ -124,6 +125,7 @@ See [.env.example](.env.example):
 
 ## Notable Implementation Details
 
+- **URL-based routing**: Chats have URLs like `#/chat/{chatId}` that persist on page refresh and work with browser back/forward buttons
 - **Dark mode**: Persisted in localStorage, applied via Tailwind's `dark:` classes
 - **Markdown rendering**: Uses `react-markdown` with `remark-gfm` for GitHub-flavored markdown and `rehype-highlight` for syntax highlighting in code blocks
 - **Graceful shutdown**: Server handles SIGINT/SIGTERM to stop model polling and disconnect Prisma

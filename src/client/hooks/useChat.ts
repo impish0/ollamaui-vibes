@@ -19,17 +19,56 @@ export const useChat = () => {
     resetStreamingContent,
   } = useChatStore();
 
-  // Load chats on mount
+  // Load chats on mount and restore from URL
   useEffect(() => {
-    loadChats();
+    loadChats().then(() => {
+      // After chats are loaded, check URL for chat ID
+      const chatIdFromUrl = getChatIdFromUrl();
+      if (chatIdFromUrl) {
+        setCurrentChatId(chatIdFromUrl);
+      }
+    });
+
+    // Listen for URL hash changes (browser back/forward)
+    const handleHashChange = () => {
+      const chatIdFromUrl = getChatIdFromUrl();
+      if (chatIdFromUrl && chatIdFromUrl !== currentChatId) {
+        setCurrentChatId(chatIdFromUrl);
+      } else if (!chatIdFromUrl && currentChatId) {
+        setCurrentChatId(null);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   // Load full chat with all messages when currentChatId changes
   useEffect(() => {
     if (currentChatId) {
       loadFullChat(currentChatId);
+      // Update URL to reflect current chat
+      updateUrlForChat(currentChatId);
+    } else {
+      // Clear URL hash if no chat is selected
+      if (window.location.hash) {
+        window.history.pushState(null, '', window.location.pathname);
+      }
     }
   }, [currentChatId]);
+
+  const getChatIdFromUrl = (): string | null => {
+    const hash = window.location.hash;
+    const match = hash.match(/^#\/chat\/(.+)$/);
+    return match ? match[1] : null;
+  };
+
+  const updateUrlForChat = (chatId: string) => {
+    const newHash = `#/chat/${chatId}`;
+    if (window.location.hash !== newHash) {
+      window.history.pushState(null, '', newHash);
+    }
+  };
 
   const loadChats = async () => {
     try {

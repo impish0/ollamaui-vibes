@@ -8,10 +8,7 @@ interface StreamingMessageProps {
 export const StreamingMessage = ({ content, isStreaming }: StreamingMessageProps) => {
   return (
     <div className="py-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="font-medium text-xs mb-2 text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-          Assistant
-        </div>
+      <div className="max-w-4xl mx-auto group">
         <div className="prose dark:prose-invert prose-sm max-w-none">
           {content ? <Markdown content={content} /> : null}
           {isStreaming && (
@@ -24,6 +21,7 @@ export const StreamingMessage = ({ content, isStreaming }: StreamingMessageProps
             </span>
           )}
         </div>
+        {/* Optional hover-only footer for streaming; no metadata yet */}
       </div>
     </div>
   );

@@ -76,20 +76,15 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
               return (
                 <div key={message.id} className="py-4">
                   <div className="max-w-4xl mx-auto">
-                    <div className="flex items-start gap-3">
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full ${meta.avatarClass} text-white flex items-center justify-center font-semibold`}
-                        title={meta.label}
-                      >
-                        {meta.avatarChar}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-1 px-1">
-                          <span className="font-medium uppercase tracking-wide">{meta.label}</span>
-                          {message.model && (
-                            <span className="text-gray-500 dark:text-gray-500">{message.model}</span>
-                          )}
+                    {message.role === 'assistant' ? (
+                      <div className="flex-1 min-w-0 group">
+                        <div className="prose dark:prose-invert prose-sm max-w-none break-words">
+                          <Markdown content={message.content} />
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {message.model && <span className="text-gray-500 dark:text-gray-500">{message.model}</span>}
                           <span className="text-gray-400">•</span>
-                          <span className="text-gray-500">{timeLabel(message.createdAt)}</span>
+                          <span>{timeLabel(message.createdAt)}</span>
                           <button
                             className="ml-auto px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-60"
                             onClick={async () => {
@@ -105,15 +100,48 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
                             {copiedMessageId === message.id ? 'Copied' : 'Copy'}
                           </button>
                         </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-3">
                         <div
-                          className={`inline-block max-w-full rounded-2xl border shadow-sm px-4 py-3 ${meta.bubbleClasses}`}
+                          className={`flex-shrink-0 w-8 h-8 rounded-full ${meta.avatarClass} text-white flex items-center justify-center font-semibold`}
+                          title={meta.label}
                         >
-                          <div className="prose dark:prose-invert prose-sm max-w-none break-words">
-                            <Markdown content={message.content} />
+                          {meta.avatarChar}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-1 px-1">
+                            <span className="font-medium uppercase tracking-wide">{meta.label}</span>
+                            {message.model && (
+                              <span className="text-gray-500 dark:text-gray-500">{message.model}</span>
+                            )}
+                            <span className="text-gray-400">•</span>
+                            <span className="text-gray-500">{timeLabel(message.createdAt)}</span>
+                            <button
+                              className="ml-auto px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-60"
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(message.content);
+                                  setCopiedMessageId(message.id);
+                                  setTimeout(() => setCopiedMessageId((prev) => (prev === message.id ? null : prev)), 1200);
+                                } catch {}
+                              }}
+                              disabled={copiedMessageId === message.id}
+                              title="Copy message"
+                            >
+                              {copiedMessageId === message.id ? 'Copied' : 'Copy'}
+                            </button>
+                          </div>
+                          <div
+                            className={`inline-block max-w-full rounded-2xl border shadow-sm px-4 py-3 ${meta.bubbleClasses}`}
+                          >
+                            <div className="prose dark:prose-invert prose-sm max-w-none break-words">
+                              <Markdown content={message.content} />
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               );

@@ -61,3 +61,4 @@ temp/
 # Development
 .cache/
 .parcel-cache
+*.db

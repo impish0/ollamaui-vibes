@@ -71,11 +71,35 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
           </div>
         ) : (
           <>
-            {messages.map((message) => {
+            {messages.map((message, idx) => {
               const meta = roleMeta(message);
+              const prev = idx > 0 ? messages[idx - 1] : undefined;
+              const sameRoleAsPrev = prev && prev.role === message.role;
+              const thisDate = new Date(message.createdAt);
+              const prevDate = prev ? new Date(prev.createdAt) : null;
+              const dayChanged = !prevDate || thisDate.toDateString() !== prevDate.toDateString();
+              const dividerLabel = (() => {
+                if (!dayChanged) return null;
+                const now = new Date();
+                const d = thisDate;
+                const isToday = d.toDateString() === now.toDateString();
+                const y = new Date(now);
+                y.setDate(now.getDate() - 1);
+                const isYesterday = d.toDateString() === y.toDateString();
+                if (isToday) return 'Today';
+                if (isYesterday) return 'Yesterday';
+                return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+              })();
               return (
-                <div key={message.id} className="py-4">
+                <div key={message.id} className={sameRoleAsPrev ? 'py-2' : 'py-4'}>
                   <div className="max-w-4xl mx-auto">
+                    {dividerLabel && (
+                      <div className="my-6 flex items-center justify-center">
+                        <span className="px-3 py-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-800">
+                          {dividerLabel}
+                        </span>
+                      </div>
+                    )}
                     {message.role === 'assistant' ? (
                       <div className="flex-1 min-w-0 group">
                         <div className="prose dark:prose-invert prose-sm max-w-none break-words">
@@ -86,7 +110,7 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
                           <span className="text-gray-400">•</span>
                           <span>{timeLabel(message.createdAt)}</span>
                           <button
-                            className="ml-auto px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-60"
+                            className="ml-auto p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-60"
                             onClick={async () => {
                               try {
                                 await navigator.clipboard.writeText(message.content);
@@ -97,28 +121,20 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
                             disabled={copiedMessageId === message.id}
                             title="Copy message"
                           >
-                            {copiedMessageId === message.id ? 'Copied' : 'Copy'}
+                            {copiedMessageId === message.id ? (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 13l4 4L19 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            ) : (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2"/><path d="M5 15V5a2 2 0 012-2h10" strokeWidth="2"/></svg>
+                            )}
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`flex-shrink-0 w-8 h-8 rounded-full ${meta.avatarClass} text-white flex items-center justify-center font-semibold`}
-                          title={meta.label}
-                        >
-                          {meta.avatarChar}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-1 px-1">
-                            <span className="font-medium uppercase tracking-wide">{meta.label}</span>
-                            {message.model && (
-                              <span className="text-gray-500 dark:text-gray-500">{message.model}</span>
-                            )}
-                            <span className="text-gray-400">•</span>
-                            <span className="text-gray-500">{timeLabel(message.createdAt)}</span>
+                      <div>
+                        <div className="ml-auto max-w-[80%] sm:max-w-[70%] md:max-w-[66%] group">
+                          <div className={`relative block w-full rounded-2xl border shadow-sm px-4 py-3 ${meta.bubbleClasses}`}>
                             <button
-                              className="ml-auto px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-60"
+                              className="absolute top-2 right-2 p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-60"
                               onClick={async () => {
                                 try {
                                   await navigator.clipboard.writeText(message.content);
@@ -128,16 +144,20 @@ export const MessageList = ({ messages, isStreaming, streamingContent }: Message
                               }}
                               disabled={copiedMessageId === message.id}
                               title="Copy message"
+                              aria-label="Copy message"
                             >
-                              {copiedMessageId === message.id ? 'Copied' : 'Copy'}
+                              {copiedMessageId === message.id ? (
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 13l4 4L19 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              ) : (
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2"/><path d="M5 15V5a2 2 0 012-2h10" strokeWidth="2"/></svg>
+                              )}
                             </button>
-                          </div>
-                          <div
-                            className={`inline-block max-w-full rounded-2xl border shadow-sm px-4 py-3 ${meta.bubbleClasses}`}
-                          >
                             <div className="prose dark:prose-invert prose-sm max-w-none break-words">
                               <Markdown content={message.content} />
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                            <span className="text-gray-500">{timeLabel(message.createdAt)}</span>
                           </div>
                         </div>
                       </div>

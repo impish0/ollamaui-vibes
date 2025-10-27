@@ -5,14 +5,15 @@ import rehypeHighlight from 'rehype-highlight';
 
 interface MarkdownProps {
   content: string;
+  defaultOpenThinking?: boolean;
 }
 
-export const Markdown: React.FC<MarkdownProps> = ({ content }) => {
+export const Markdown: React.FC<MarkdownProps> = ({ content, defaultOpenThinking = false }) => {
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
   // Collapsible thinking block component
   const ThinkBlock: React.FC<{ text: string; variant: 'tag' | 'fence' }> = ({ text }) => {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState<boolean>(defaultOpenThinking);
     return (
       <div className="my-3 border border-yellow-300/40 dark:border-yellow-700/40 bg-yellow-50/40 dark:bg-yellow-900/10 rounded-lg">
         <div className="px-3 py-2 flex items-center gap-2">
@@ -57,11 +58,39 @@ export const Markdown: React.FC<MarkdownProps> = ({ content }) => {
     const src = content ?? '';
     const out: Block[] = [];
     let i = 0;
-    const THINK_OPEN = '<think>';
-    const THINK_CLOSE = '</think>';
+    // Tag variants (case-insensitive): think, thinking, reasoning
+    const TAGS = ['think', 'thinking', 'reasoning'];
+    const findNextTagOpen = (from: number) => {
+      let best = -1;
+      let tag = '';
+      for (const t of TAGS) {
+        const idx = src.toLowerCase().indexOf(`<${t}>`, from);
+        if (idx !== -1 && (best === -1 || idx < best)) {
+          best = idx;
+          tag = t;
+        }
+      }
+      return { idx: best, tag } as const;
+    };
+    const findCloseFor = (tag: string, from: number) => src.toLowerCase().indexOf(`</${tag}>`, from);
+
+    // Fence variants: thinking, reasoning, thoughts, cot
+    const FENCES = ['thinking', 'reasoning', 'thoughts', 'cot'];
+    const findNextFence = (from: number) => {
+      let best = -1;
+      let fence = '';
+      for (const f of FENCES) {
+        const idx = src.indexOf('```' + f, from);
+        if (idx !== -1 && (best === -1 || idx < best)) {
+          best = idx;
+          fence = f;
+        }
+      }
+      return { idx: best, fence } as const;
+    };
     while (i < src.length) {
-      const tagStart = src.indexOf(THINK_OPEN, i);
-      const fenceStart = src.indexOf('```thinking', i);
+      const { idx: tagStart, tag: openTag } = findNextTagOpen(i);
+      const { idx: fenceStart } = findNextFence(i);
       const candidates = [tagStart, fenceStart].filter((x) => x !== -1) as number[];
       if (candidates.length === 0) {
         out.push({ type: 'normal', text: src.slice(i) });
@@ -72,15 +101,15 @@ export const Markdown: React.FC<MarkdownProps> = ({ content }) => {
         out.push({ type: 'normal', text: src.slice(i, start) });
       }
       if (start === tagStart) {
-        const close = src.indexOf(THINK_CLOSE, start + THINK_OPEN.length);
+        const close = openTag ? findCloseFor(openTag, start + (`<${openTag}>`).length) : -1;
         if (close === -1) {
           // No close tag; treat rest as normal
           out.push({ type: 'normal', text: src.slice(start) });
           break;
         }
-        const inner = src.slice(start + THINK_OPEN.length, close);
+        const inner = src.slice(start + (`<${openTag}>`).length, close);
         out.push({ type: 'thinking', text: inner.trim(), variant: 'tag' });
-        i = close + THINK_CLOSE.length;
+        i = close + (`</${openTag}>`).length;
       } else {
         // thinking fence
         const headerEnd = src.indexOf('\n', fenceStart);

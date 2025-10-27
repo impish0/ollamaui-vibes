@@ -10,7 +10,7 @@ export const StreamingMessage = ({ content, isStreaming }: StreamingMessageProps
     <div className="py-4">
       <div className="max-w-4xl mx-auto group">
         <div className="prose dark:prose-invert prose-sm max-w-none">
-          {content ? <Markdown content={content} /> : null}
+          {content ? <Markdown content={content} defaultOpenThinking={true} /> : null}
           {isStreaming && (
             <span className="inline-flex items-center ml-1">
               <span className="typing-indicator flex gap-1">

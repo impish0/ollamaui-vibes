@@ -71,15 +71,8 @@ export class OllamaService {
         stream: true,
       };
 
-      // Add options if provided
       if (request.options) {
         payload.options = request.options;
-      }
-
-      console.log(`[Ollama Service] Sending ${request.messages.length} messages to Ollama`);
-      console.log(`[Ollama Service] Payload size: ${JSON.stringify(payload).length} bytes`);
-      if (request.options?.num_ctx) {
-        console.log(`[Ollama Service] Context window size: ${request.options.num_ctx}`);
       }
 
       const response = await fetch(`${this.baseUrl}/api/chat`, {

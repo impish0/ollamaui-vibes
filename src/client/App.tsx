@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense, useMemo } from 'react';
+import { useEffect, lazy, Suspense, useMemo, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useChatStore } from './store/chatStore';
 import { useChat, useCreateChat } from './hooks/useChatsQuery';
@@ -6,6 +6,7 @@ import { useCachedModels } from './hooks/useModelsQuery';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Layout/Header';
 import { Sidebar } from './components/Layout/Sidebar';
+import { SettingsModal } from './components/Settings';
 import { toastUtils } from './utils/toast';
 
 // Lazy load ChatWindow (loaded when user opens a chat)
@@ -30,6 +31,7 @@ function App() {
   const { data: currentChat } = useChat(currentChatId);
   const createChatMutation = useCreateChat();
   const { data: modelsData } = useCachedModels();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const models = modelsData?.models || [];
 
@@ -65,6 +67,12 @@ function App() {
         description: 'Toggle dark mode',
         handler: () => toggleDarkMode(),
       },
+      {
+        key: ',',
+        ctrl: true,
+        description: 'Open settings',
+        handler: () => setIsSettingsOpen(true),
+      },
     ],
     [models, createChatMutation, setCurrentChatId, toggleSidebar, toggleDarkMode]
   );
@@ -83,10 +91,11 @@ function App() {
   return (
     <>
       <Toaster />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <div className="h-screen flex flex-col bg-white dark:bg-gray-950">
-        <Header />
+        <Header onOpenSettings={() => setIsSettingsOpen(true)} />
         <div className="flex-1 flex overflow-hidden">
-          <Sidebar />
+          <Sidebar onOpenSettings={() => setIsSettingsOpen(true)} />
           <main className="flex-1 flex flex-col overflow-hidden">
             {currentChat ? (
               <Suspense fallback={<ChatWindowLoading />}>

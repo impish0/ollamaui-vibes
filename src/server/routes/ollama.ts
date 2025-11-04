@@ -181,12 +181,29 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
         },
       });
 
-      // Generate title if this is the first exchange (2 messages: user + assistant)
+      // Title generation logic with settings-based triggers
       const messageCount = await prisma.message.count({
         where: { chatId },
       });
 
-      if (messageCount === 2 && !chat.title) {
+      // Load settings to check if title generation should run
+      const { settingsService } = await import('../services/settingsService.js');
+      const settings = await settingsService.getSettings();
+      const {
+        enabled,
+        triggerAfterMessages,
+        regenerateAfterMessages,
+      } = settings.titleGeneration;
+
+      // Check if we should generate/regenerate title
+      const shouldGenerateTitle = enabled && (
+        // Initial generation: after N messages and no title exists
+        (messageCount === triggerAfterMessages && !chat.title) ||
+        // Regeneration: after N more messages (if enabled)
+        (regenerateAfterMessages > 0 && messageCount === regenerateAfterMessages)
+      );
+
+      if (shouldGenerateTitle) {
         // Generate title in background with better error handling
         const allMessages = await prisma.message.findMany({
           where: { chatId },
@@ -209,7 +226,8 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
               where: { id: chatId },
               data: { title },
             });
-            logInfo('Title generated', { chatId, title });
+            const action = messageCount === triggerAfterMessages ? 'generated' : 'regenerated';
+            logInfo(`Title ${action}`, { chatId, title, messageCount });
           } catch (error) {
             logError('Failed to save title', error, { chatId });
           }

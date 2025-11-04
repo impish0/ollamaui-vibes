@@ -94,3 +94,56 @@ export type UpdateSystemPromptInput = z.infer<typeof updateSystemPromptSchema>;
 export type UpdateOllamaConfigInput = z.infer<typeof updateOllamaConfigSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
 export type MessagesPaginationInput = z.infer<typeof messagesPaginationSchema>;
+
+// Settings schemas
+export const settingsSchema = z.object({
+  titleGeneration: z.object({
+    enabled: z.boolean(),
+    prompt: z.string().min(10).max(5000),
+    triggerAfterMessages: z.number().int().min(1).max(100),
+    regenerateAfterMessages: z.number().int().min(0).max(100),
+    maxLength: z.number().int().min(10).max(200),
+  }).partial().optional(),
+
+  model: z.object({
+    defaultModel: z.string().max(200).nullable(),
+    defaultSystemPromptId: z.string().cuid().nullable(),
+    temperature: z.number().min(0).max(2),
+    topP: z.number().min(0).max(1),
+    contextWindow: z.union([z.literal('auto'), z.number().int().min(512).max(131072)]),
+  }).partial().optional(),
+
+  ui: z.object({
+    theme: z.enum(['light', 'dark', 'system']),
+    autoScroll: z.boolean(),
+    showTimestamps: z.boolean(),
+    sidebarDefaultOpen: z.boolean(),
+    compactMode: z.boolean(),
+    messageDisplayDensity: z.enum(['comfortable', 'compact']),
+  }).partial().optional(),
+
+  general: z.object({
+    ollamaBaseUrl: z.string().url().max(500),
+    autoSave: z.boolean(),
+    messageHistoryLimit: z.number().int().min(0),
+    enableMarkdownRendering: z.boolean(),
+    enableSyntaxHighlighting: z.boolean(),
+  }).partial().optional(),
+
+  advanced: z.object({
+    streamTimeout: z.number().int().min(1000).max(600000),
+    chunkTimeout: z.number().int().min(1000).max(60000),
+    loggingLevel: z.enum(['debug', 'info', 'warn', 'error']),
+    enableDebugMode: z.boolean(),
+    modelPollingInterval: z.number().int().min(5000).max(60000),
+  }).partial().optional(),
+}).partial();
+
+export const updateSettingsSchema = settingsSchema;
+export const settingPathSchema = z.object({
+  path: z.string().regex(/^[a-zA-Z]+\.[a-zA-Z]+$/, 'Invalid setting path'),
+  value: z.any(),
+});
+
+export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
+export type SettingPathInput = z.infer<typeof settingPathSchema>;

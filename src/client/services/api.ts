@@ -10,6 +10,7 @@ import type {
   UpdateSystemPromptRequest,
   PaginatedMessagesResponse,
 } from '../../shared/types';
+import type { AppSettings } from '../../shared/settings';
 
 const API_BASE = '/api';
 
@@ -169,4 +170,34 @@ export const ollamaApi = {
       }
     }
   },
+};
+
+// Settings API
+export const settingsApi = {
+  getAll: () => fetchJson<AppSettings>(`${API_BASE}/settings`),
+
+  update: (data: Partial<AppSettings>) =>
+    fetchJson<AppSettings>(`${API_BASE}/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  getSetting: (category: string, key: string) =>
+    fetchJson<{ path: string; value: any }>(`${API_BASE}/settings/${category}/${key}`),
+
+  updateSetting: (category: string, key: string, value: any) =>
+    fetchJson<AppSettings>(`${API_BASE}/settings/${category}/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value }),
+    }),
+
+  reset: () =>
+    fetchJson<AppSettings>(`${API_BASE}/settings/reset`, {
+      method: 'POST',
+    }),
+
+  resetCategory: (category: string) =>
+    fetchJson<AppSettings>(`${API_BASE}/settings/reset/${category}`, {
+      method: 'POST',
+    }),
 };

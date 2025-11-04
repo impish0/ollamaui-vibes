@@ -79,4 +79,8 @@ export const queryKeys = {
     health: ['ollama', 'health'] as const,
     config: ['ollama', 'config'] as const,
   },
+  settings: {
+    all: ['settings'] as const,
+    detail: (category: string, key: string) => ['settings', category, key] as const,
+  },
 } as const;

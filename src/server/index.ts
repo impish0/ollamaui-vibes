@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { prisma } from './db.js';
 import { ollamaService } from './services/ollamaService.js';
+import { settingsService } from './services/settingsService.js';
 import { localhostOnly, apiLimiter, sanitizeInput } from './middleware/security.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger, logError, logInfo } from './utils/logger.js';
@@ -9,6 +10,7 @@ import chatsRouter from './routes/chats.js';
 import messagesRouter from './routes/messages.js';
 import systemPromptsRouter from './routes/systemPrompts.js';
 import ollamaRouter from './routes/ollama.js';
+import settingsRouter from './routes/settings.js';
 
 const app = express();
 const PORT = parseInt(process.env.SERVER_PORT || '3001', 10);
@@ -35,6 +37,7 @@ app.use('/api/chats', chatsRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api/system-prompts', systemPromptsRouter);
 app.use('/api/ollama', ollamaRouter);
+app.use('/api/settings', settingsRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -51,15 +54,14 @@ async function start() {
     await prisma.$connect();
     logInfo('✓ Database connected');
 
-    // Load Ollama base URL from settings
-    const ollamaUrlSetting = await prisma.settings.findUnique({
-      where: { key: 'ollamaBaseUrl' },
-    });
+    // Initialize settings service (loads from DB and env)
+    await settingsService.initialize();
+    logInfo('✓ Settings service initialized');
 
-    if (ollamaUrlSetting) {
-      ollamaService.setBaseUrl(ollamaUrlSetting.value);
-      logInfo('Ollama base URL loaded from settings', { baseUrl: ollamaUrlSetting.value });
-    }
+    // Load Ollama base URL from settings
+    const settings = await settingsService.getSettings();
+    ollamaService.setBaseUrl(settings.general.ollamaBaseUrl);
+    logInfo('Ollama base URL loaded from settings', { baseUrl: settings.general.ollamaBaseUrl });
 
     // Start model polling
     ollamaService.startModelPolling(15000); // Poll every 15 seconds

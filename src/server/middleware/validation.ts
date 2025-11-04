@@ -9,11 +9,6 @@ import { ApiError } from './errorHandler.js';
 
 type ValidationTarget = 'body' | 'params' | 'query';
 
-interface ValidationOptions {
-  schema: z.ZodSchema;
-  target?: ValidationTarget;
-}
-
 /**
  * Validate request data against a Zod schema
  * @param schema - Zod schema to validate against

@@ -64,8 +64,9 @@ router.post('/config', validateBody(updateOllamaConfigSchema), async (req, res, 
 
 // Stream chat completion
 router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async (req: Request, res: Response, next) => {
+  const { chatId, model, message } = req.body;
+
   try {
-    const { chatId, model, message } = req.body;
 
     // Get chat with messages and system prompt
     const chat = await prisma.chat.findUnique({
@@ -193,7 +194,7 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
         });
 
         titleGenerator.generateTitle(
-          allMessages.map(m => ({
+          allMessages.map((m: typeof allMessages[0]) => ({
             id: m.id,
             chatId: m.chatId,
             role: m.role as 'user' | 'assistant' | 'system',

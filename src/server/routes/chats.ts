@@ -118,7 +118,7 @@ router.delete('/:chatId', validateParams(chatIdParamSchema), async (req, res, ne
 router.get('/:chatId/messages', validateParams(chatIdParamSchema), validateQuery(messagesPaginationSchema), async (req, res, next) => {
   try {
     const { chatId } = req.params;
-    const { limit, cursor } = req.query as { limit: number; cursor?: string };
+    const { limit, cursor } = req.query as unknown as { limit: number; cursor?: string };
 
     // Verify chat exists
     const chat = await prisma.chat.findUnique({

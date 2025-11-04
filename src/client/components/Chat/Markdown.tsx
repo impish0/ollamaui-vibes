@@ -189,15 +189,15 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, defaultOpenThinking
         b.type === 'thinking' ? (
           <ThinkBlock key={`think-${idx}`} text={b.text} variant={b.variant} />
         ) : (
-          <ReactMarkdown
-            key={`md-${idx}`}
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight]}
-            className="markdown"
-            components={markdownComponents}
-          >
-            {b.text}
-          </ReactMarkdown>
+          <div key={`md-${idx}`} className="markdown">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+              components={markdownComponents}
+            >
+              {b.text}
+            </ReactMarkdown>
+          </div>
         )
       )}
     </div>

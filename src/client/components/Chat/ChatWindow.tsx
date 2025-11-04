@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useChat } from '../../hooks/useChat';
+import { useMessaging } from '../../hooks/useMessaging';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { ModelSelector } from '../ModelSelector/ModelSelector';
@@ -12,7 +12,7 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow = ({ chat }: ChatWindowProps) => {
-  const { sendMessage, updateChat, isStreaming, streamingContent, stopStreaming } = useChat();
+  const { sendMessage, updateChat, isStreaming, streamingContent, stopStreaming } = useMessaging();
   const [selectedModel, setSelectedModel] = useState(chat.model);
   const [selectedSystemPromptId, setSelectedSystemPromptId] = useState(
     chat.systemPromptId || undefined

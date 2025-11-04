@@ -1,8 +1,7 @@
 import { useEffect, lazy, Suspense, useMemo } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useChatStore } from './store/chatStore';
-import { useChat } from './hooks/useChat';
-import { useCreateChat } from './hooks/useChatsQuery';
+import { useChat, useCreateChat } from './hooks/useChatsQuery';
 import { useCachedModels } from './hooks/useModelsQuery';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Layout/Header';
@@ -27,8 +26,8 @@ const ChatWindowLoading = () => (
 );
 
 function App() {
-  const { darkMode, toggleDarkMode, toggleSidebar, setCurrentChatId } = useChatStore();
-  const { currentChat } = useChat();
+  const { darkMode, toggleDarkMode, toggleSidebar, currentChatId, setCurrentChatId } = useChatStore();
+  const { data: currentChat } = useChat(currentChatId);
   const createChatMutation = useCreateChat();
   const { data: modelsData } = useCachedModels();
 

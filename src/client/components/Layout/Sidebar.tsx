@@ -73,7 +73,7 @@ export const Sidebar = () => {
 
   return (
     <>
-      <aside className="w-80 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <aside className="w-80 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex flex-col animate-slide-in-left">
         {/* Header Section */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center justify-between">
@@ -185,14 +185,15 @@ export const Sidebar = () => {
                 </p>
               </div>
             ) : (
-              chats.map((chat) => (
+              chats.map((chat, index) => (
                 <div
                   key={chat.id}
-                  className={`w-full p-3 rounded-lg transition-all group relative cursor-pointer ${
+                  className={`w-full p-3 rounded-lg transition-all group relative cursor-pointer animate-fade-in-up ${
                     currentChatId === chat.id
                       ? 'bg-primary-100 dark:bg-primary-900/30 border-l-4 border-primary-600'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
+                  style={{ animationDelay: `${index * 50}ms` }}
                   onClick={() => setCurrentChatId(chat.id)}
                 >
                   <div className="flex items-start justify-between gap-2">

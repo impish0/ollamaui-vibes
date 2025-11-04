@@ -3,6 +3,7 @@ import { useChatStore } from '../../store/chatStore';
 import { useChats, useCreateChat, useDeleteChat } from '../../hooks/useChatsQuery';
 import { useCachedModels } from '../../hooks/useModelsQuery';
 import { SystemPromptModal } from '../SystemPrompts/SystemPromptModal';
+import { ChatListSkeleton } from '../UI/Skeleton';
 import { toastUtils } from '../../utils/toast';
 
 export const Sidebar = () => {
@@ -172,12 +173,16 @@ export const Sidebar = () => {
         <div className="flex-1 overflow-y-auto scrollbar-thin px-2">
           <div className="space-y-1 pb-4">
             {chatsLoading ? (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                Loading chats...
-              </div>
+              <ChatListSkeleton />
             ) : chats.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                No chats yet. Create one to get started!
+              <div className="p-6 text-center space-y-3">
+                <div className="text-4xl opacity-50">💬</div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                  No chats yet
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Click "New Chat" above to start a conversation
+                </p>
               </div>
             ) : (
               chats.map((chat) => (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSystemPrompts, useCreateSystemPrompt, useUpdateSystemPrompt, useDeleteSystemPrompt } from '../../hooks/useSystemPromptsQuery';
+import { SystemPromptSkeleton } from '../UI/Skeleton';
 import { toastUtils } from '../../utils/toast';
 
 interface SystemPromptModalProps {
@@ -171,12 +172,16 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
           {/* Prompts List */}
           <div className="space-y-3">
             {isLoading ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                Loading system prompts...
-              </div>
+              <SystemPromptSkeleton />
             ) : systemPrompts.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                No system prompts yet. Create one to get started!
+              <div className="text-center py-12 space-y-3">
+                <div className="text-5xl opacity-50">📝</div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                  No system prompts yet
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Create custom system prompts to guide your AI conversations
+                </p>
               </div>
             ) : (
               systemPrompts.map((prompt) => (

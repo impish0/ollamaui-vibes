@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSystemPrompts } from '../../hooks/useSystemPrompts';
+import { toastUtils } from '../../utils/toast';
 
 interface SystemPromptModalProps {
   onClose: () => void;
@@ -15,7 +16,7 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
 
   const handleCreate = async () => {
     if (!name.trim() || !content.trim()) {
-      alert('Name and content are required');
+      toastUtils.warning('Name and content are required');
       return;
     }
 
@@ -24,15 +25,16 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
       setName('');
       setContent('');
       setIsCreating(false);
+      toastUtils.success('System prompt created successfully');
     } catch (error) {
       console.error('Failed to create system prompt:', error);
-      alert('Failed to create system prompt. Please try again.');
+      toastUtils.error('Failed to create system prompt. Please try again.');
     }
   };
 
   const handleUpdate = async (id: string) => {
     if (!name.trim() || !content.trim()) {
-      alert('Name and content are required');
+      toastUtils.warning('Name and content are required');
       return;
     }
 
@@ -41,19 +43,27 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
       setEditingId(null);
       setName('');
       setContent('');
+      toastUtils.success('System prompt updated successfully');
     } catch (error) {
       console.error('Failed to update system prompt:', error);
-      alert('Failed to update system prompt. Please try again.');
+      toastUtils.error('Failed to update system prompt. Please try again.');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this system prompt?')) {
+    const confirmed = await toastUtils.confirm(
+      'Are you sure you want to delete this system prompt?',
+      'Delete',
+      'Cancel'
+    );
+
+    if (confirmed) {
       try {
         await deleteSystemPrompt(id);
+        toastUtils.success('System prompt deleted successfully');
       } catch (error) {
         console.error('Failed to delete system prompt:', error);
-        alert('Failed to delete system prompt. Please try again.');
+        toastUtils.error('Failed to delete system prompt. Please try again.');
       }
     }
   };

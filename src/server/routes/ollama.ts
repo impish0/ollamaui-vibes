@@ -4,6 +4,7 @@ import { ollamaService } from '../services/ollamaService.js';
 import { titleGenerator } from '../services/titleGenerator.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import { streamLimiter } from '../middleware/security.js';
+import { logError, logInfo } from '../utils/logger.js';
 import type { ChatCompletionRequest } from '../../shared/types.js';
 
 const router = Router();
@@ -86,16 +87,7 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
       throw new ApiError('Chat not found', 404);
     }
 
-    // Save user message
-    await prisma.message.create({
-      data: {
-        chatId,
-        role: 'user',
-        content: message,
-      },
-    });
-
-    // Build messages array for Ollama
+    // Build messages array for Ollama BEFORE saving anything
     const messages: ChatCompletionRequest['messages'] = [];
 
     // Add system prompt if exists
@@ -139,8 +131,23 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
     res.setHeader('Connection', 'keep-alive');
 
     let assistantResponse = '';
+    let userMessageId: string | null = null;
 
     try {
+      // Save both messages in a transaction-like operation
+      // First, save the user message
+      const userMessage = await prisma.message.create({
+        data: {
+          chatId,
+          role: 'user',
+          content: message,
+        },
+      });
+      userMessageId = userMessage.id;
+
+      // Send confirmation that user message was saved
+      res.write(`data: ${JSON.stringify({ userMessageSaved: true, userMessageId: userMessage.id })}\n\n`);
+
       // Stream from Ollama with appropriate context window size
       for await (const chunk of ollamaService.streamChat({
         model,
@@ -154,6 +161,11 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }
 
+      // Verify we got some response
+      if (!assistantResponse || assistantResponse.trim().length === 0) {
+        throw new Error('Empty response from Ollama');
+      }
+
       // Save assistant message
       const assistantMessage = await prisma.message.create({
         data: {
@@ -164,10 +176,13 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
         },
       });
 
-      // Update chat model
+      // Update chat model and timestamp
       await prisma.chat.update({
         where: { id: chatId },
-        data: { model },
+        data: {
+          model,
+          updatedAt: new Date(),
+        },
       });
 
       // Generate title if this is the first exchange (2 messages: user + assistant)
@@ -176,7 +191,7 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
       });
 
       if (messageCount === 2 && !chat.title) {
-        // Generate title in background
+        // Generate title in background with better error handling
         const allMessages = await prisma.message.findMany({
           where: { chatId },
           orderBy: { createdAt: 'asc' },
@@ -192,18 +207,48 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
             createdAt: m.createdAt.toISOString(),
           })),
           model
-        ).then(title => {
-          prisma.chat.update({
-            where: { id: chatId },
-            data: { title },
-          }).catch(console.error);
-        }).catch(console.error);
+        ).then(async (title) => {
+          try {
+            await prisma.chat.update({
+              where: { id: chatId },
+              data: { title },
+            });
+            logInfo('Title generated', { chatId, title });
+          } catch (error) {
+            logError('Failed to save title', error, { chatId });
+          }
+        }).catch((error) => {
+          logError('Failed to generate title', error, { chatId });
+        });
       }
 
       res.write(`data: ${JSON.stringify({ done: true, messageId: assistantMessage.id })}\n\n`);
       res.end();
     } catch (streamError) {
-      res.write(`data: ${JSON.stringify({ error: 'Stream error occurred' })}\n\n`);
+      logError('Stream error occurred', streamError, { chatId, model });
+
+      // Critical: If we saved a user message but streaming failed,
+      // save an error message so the user knows what happened
+      if (userMessageId) {
+        try {
+          await prisma.message.create({
+            data: {
+              chatId,
+              role: 'assistant',
+              content: '⚠️ Error: Failed to generate response. Please try again.',
+              model,
+            },
+          });
+          logInfo('Created error message for failed stream', { chatId });
+        } catch (dbError) {
+          logError('Failed to create error message', dbError, { chatId });
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({
+        error: 'Stream error occurred',
+        message: streamError instanceof Error ? streamError.message : 'Unknown error',
+      })}\n\n`);
       res.end();
       throw streamError;
     }
@@ -211,7 +256,7 @@ router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, n
     if (!res.headersSent) {
       next(error);
     } else {
-      console.error('Error during streaming:', error);
+      logError('Error during streaming after headers sent', error, { chatId });
       res.end();
     }
   }

@@ -4,6 +4,7 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { ModelSelector } from '../ModelSelector/ModelSelector';
 import { SystemPromptSelector } from '../SystemPrompts/SystemPromptSelector';
+import { toastUtils } from '../../utils/toast';
 import type { Chat } from '../../../shared/types';
 
 interface ChatWindowProps {
@@ -45,7 +46,7 @@ export const ChatWindow = ({ chat }: ChatWindowProps) => {
       await sendMessage(chat.id, message, selectedModel);
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Failed to send message. Please try again.');
+      toastUtils.error('Failed to send message. Please try again.');
     }
   };
 

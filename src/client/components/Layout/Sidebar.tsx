@@ -3,6 +3,7 @@ import { useChatStore } from '../../store/chatStore';
 import { useChat } from '../../hooks/useChat';
 import { useModels } from '../../hooks/useModels';
 import { SystemPromptModal } from '../SystemPrompts/SystemPromptModal';
+import { toastUtils } from '../../utils/toast';
 
 export const Sidebar = () => {
   const { sidebarOpen, currentChatId, darkMode, toggleDarkMode, toggleSidebar } = useChatStore();
@@ -13,16 +14,17 @@ export const Sidebar = () => {
 
   const handleNewChat = async () => {
     if (models.length === 0) {
-      alert('No models available. Please make sure Ollama is running.');
+      toastUtils.error('No models available. Please make sure Ollama is running.');
       return;
     }
 
     try {
       setIsCreatingChat(true);
       await createChat(models[0].name);
+      toastUtils.success('Chat created successfully');
     } catch (error) {
       console.error('Failed to create chat:', error);
-      alert('Failed to create chat. Please try again.');
+      toastUtils.error('Failed to create chat. Please try again.');
     } finally {
       setIsCreatingChat(false);
     }
@@ -30,12 +32,20 @@ export const Sidebar = () => {
 
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this chat?')) {
+
+    const confirmed = await toastUtils.confirm(
+      'Are you sure you want to delete this chat?',
+      'Delete',
+      'Cancel'
+    );
+
+    if (confirmed) {
       try {
         await deleteChat(chatId);
+        toastUtils.success('Chat deleted successfully');
       } catch (error) {
         console.error('Failed to delete chat:', error);
-        alert('Failed to delete chat. Please try again.');
+        toastUtils.error('Failed to delete chat. Please try again.');
       }
     }
   };

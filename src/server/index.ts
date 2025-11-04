@@ -4,6 +4,7 @@ import { prisma } from './db.js';
 import { ollamaService } from './services/ollamaService.js';
 import { localhostOnly, apiLimiter, sanitizeInput } from './middleware/security.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { logger, logError, logInfo } from './utils/logger.js';
 import chatsRouter from './routes/chats.js';
 import messagesRouter from './routes/messages.js';
 import systemPromptsRouter from './routes/systemPrompts.js';
@@ -48,7 +49,7 @@ async function start() {
   try {
     // Test database connection
     await prisma.$connect();
-    console.log('✓ Database connected');
+    logInfo('✓ Database connected');
 
     // Load Ollama base URL from settings
     const ollamaUrlSetting = await prisma.settings.findUnique({
@@ -57,41 +58,44 @@ async function start() {
 
     if (ollamaUrlSetting) {
       ollamaService.setBaseUrl(ollamaUrlSetting.value);
+      logInfo('Ollama base URL loaded from settings', { baseUrl: ollamaUrlSetting.value });
     }
 
     // Start model polling
     ollamaService.startModelPolling(15000); // Poll every 15 seconds
-    console.log('✓ Ollama model polling started');
+    logInfo('✓ Ollama model polling started');
 
     // Check Ollama connection
     const healthy = await ollamaService.healthCheck();
     if (healthy) {
-      console.log(`✓ Ollama connected at ${ollamaService.getBaseUrl()}`);
+      logInfo(`✓ Ollama connected`, { baseUrl: ollamaService.getBaseUrl() });
     } else {
-      console.warn(`⚠ Ollama not reachable at ${ollamaService.getBaseUrl()}`);
+      logger.warn(`⚠ Ollama not reachable`, { baseUrl: ollamaService.getBaseUrl() });
     }
 
     // Start listening
     app.listen(PORT, '127.0.0.1', () => {
-      console.log(`✓ Server running on http://127.0.0.1:${PORT}`);
-      console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
+      logInfo(`✓ Server running`, {
+        url: `http://127.0.0.1:${PORT}`,
+        environment: process.env.NODE_ENV || 'development'
+      });
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logError('Failed to start server', error);
     process.exit(1);
   }
 }
 
 // Cleanup on shutdown
 process.on('SIGINT', async () => {
-  console.log('\nShutting down gracefully...');
+  logInfo('\nShutting down gracefully...');
   ollamaService.stopModelPolling();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\nShutting down gracefully...');
+  logInfo('\nShutting down gracefully...');
   ollamaService.stopModelPolling();
   await prisma.$disconnect();
   process.exit(0);

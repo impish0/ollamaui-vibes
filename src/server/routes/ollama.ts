@@ -5,6 +5,8 @@ import { titleGenerator } from '../services/titleGenerator.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import { streamLimiter } from '../middleware/security.js';
 import { logError, logInfo } from '../utils/logger.js';
+import { validateBody } from '../middleware/validation.js';
+import { streamChatSchema, updateOllamaConfigSchema } from '../validation/schemas.js';
 import type { ChatCompletionRequest } from '../../shared/types.js';
 
 const router = Router();
@@ -40,13 +42,9 @@ router.get('/health', async (_req, res, next) => {
 });
 
 // Update Ollama base URL
-router.post('/config', async (req, res, next) => {
+router.post('/config', validateBody(updateOllamaConfigSchema), async (req, res, next) => {
   try {
     const { baseUrl } = req.body;
-
-    if (!baseUrl) {
-      throw new ApiError('baseUrl is required', 400);
-    }
 
     ollamaService.setBaseUrl(baseUrl);
 
@@ -57,6 +55,7 @@ router.post('/config', async (req, res, next) => {
       create: { key: 'ollamaBaseUrl', value: baseUrl },
     });
 
+    logInfo('Ollama base URL updated', { baseUrl });
     res.json({ success: true, baseUrl });
   } catch (error) {
     next(error);
@@ -64,13 +63,9 @@ router.post('/config', async (req, res, next) => {
 });
 
 // Stream chat completion
-router.post('/chat/stream', streamLimiter, async (req: Request, res: Response, next) => {
+router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async (req: Request, res: Response, next) => {
   try {
     const { chatId, model, message } = req.body;
-
-    if (!chatId || !model || !message) {
-      throw new ApiError('chatId, model, and message are required', 400);
-    }
 
     // Get chat with messages and system prompt
     const chat = await prisma.chat.findUnique({

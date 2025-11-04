@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { useChatStore } from './store/chatStore';
 import { useChat, useCreateChat } from './hooks/useChatsQuery';
 import { useCachedModels } from './hooks/useModelsQuery';
+import { useSettings } from './hooks/useSettingsQuery';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Layout/Header';
 import { Sidebar } from './components/Layout/Sidebar';
@@ -27,13 +28,24 @@ const ChatWindowLoading = () => (
 );
 
 function App() {
-  const { darkMode, toggleDarkMode, toggleSidebar, currentChatId, setCurrentChatId } = useChatStore();
+  const { currentChatId, setCurrentChatId } = useChatStore();
   const { data: currentChat } = useChat(currentChatId);
+  const { data: settings } = useSettings();
   const createChatMutation = useCreateChat();
   const { data: modelsData } = useCachedModels();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const models = modelsData?.models || [];
+
+  // Get default model from settings or fallback to first available
+  const defaultModel = useMemo(() => {
+    if (settings?.model.defaultModel) {
+      // Verify the default model still exists
+      const modelExists = models.find(m => m.name === settings.model.defaultModel);
+      if (modelExists) return settings.model.defaultModel;
+    }
+    return models[0]?.name || '';
+  }, [settings?.model.defaultModel, models]);
 
   // Keyboard shortcuts
   const shortcuts = useMemo(
@@ -43,12 +55,16 @@ function App() {
         ctrl: true,
         description: 'Create new chat',
         handler: async () => {
-          if (models.length === 0) {
+          if (!defaultModel) {
             toastUtils.error('No models available');
             return;
           }
           try {
-            const newChat = await createChatMutation.mutateAsync({ model: models[0].name });
+            // Use default model from settings, and default system prompt if configured
+            const newChat = await createChatMutation.mutateAsync({
+              model: defaultModel,
+              systemPromptId: settings?.model.defaultSystemPromptId || undefined,
+            });
             setCurrentChatId(newChat.id);
           } catch (error) {
             console.error('Failed to create chat:', error);
@@ -59,13 +75,10 @@ function App() {
         key: 'b',
         ctrl: true,
         description: 'Toggle sidebar',
-        handler: () => toggleSidebar(),
-      },
-      {
-        key: 'd',
-        ctrl: true,
-        description: 'Toggle dark mode',
-        handler: () => toggleDarkMode(),
+        handler: () => {
+          const store = useChatStore.getState();
+          store.toggleSidebar();
+        },
       },
       {
         key: ',',
@@ -74,19 +87,43 @@ function App() {
         handler: () => setIsSettingsOpen(true),
       },
     ],
-    [models, createChatMutation, setCurrentChatId, toggleSidebar, toggleDarkMode]
+    [defaultModel, settings?.model.defaultSystemPromptId, createChatMutation, setCurrentChatId]
   );
 
   useKeyboardShortcuts(shortcuts);
 
+  // Apply theme from settings
   useEffect(() => {
-    // Apply dark mode class to document
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    if (!settings) return;
+
+    const applyTheme = () => {
+      const theme = settings.ui.theme;
+
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else if (theme === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        // System theme
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    };
+
+    applyTheme();
+
+    // Listen for system theme changes if set to 'system'
+    if (settings.ui.theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = () => applyTheme();
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
     }
-  }, [darkMode]);
+  }, [settings?.ui.theme]);
 
   return (
     <>
@@ -95,7 +132,11 @@ function App() {
       <div className="h-screen flex flex-col bg-white dark:bg-gray-950">
         <Header onOpenSettings={() => setIsSettingsOpen(true)} />
         <div className="flex-1 flex overflow-hidden">
-          <Sidebar onOpenSettings={() => setIsSettingsOpen(true)} />
+          <Sidebar
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            defaultModel={defaultModel}
+            defaultSystemPromptId={settings?.model.defaultSystemPromptId}
+          />
           <main className="flex-1 flex flex-col overflow-hidden">
             {currentChat ? (
               <Suspense fallback={<ChatWindowLoading />}>

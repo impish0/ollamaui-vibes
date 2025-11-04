@@ -440,16 +440,6 @@ const UIPreferencesSettings = ({
       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sidebar open by default</span>
     </label>
 
-    <label className="flex items-center gap-3">
-      <input
-        type="checkbox"
-        checked={data?.compactMode ?? false}
-        onChange={(e) => onChange('compactMode', e.target.checked)}
-        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-      />
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Compact mode</span>
-    </label>
-
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message Density</label>
       <select

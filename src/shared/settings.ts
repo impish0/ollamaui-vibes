@@ -30,7 +30,6 @@ export interface AppSettings {
     autoScroll: boolean;
     showTimestamps: boolean;
     sidebarDefaultOpen: boolean;
-    compactMode: boolean;
     messageDisplayDensity: 'comfortable' | 'compact';
   };
 
@@ -83,7 +82,6 @@ Title:`,
     autoScroll: true,
     showTimestamps: false,
     sidebarDefaultOpen: true,
-    compactMode: false,
     messageDisplayDensity: 'comfortable',
   },
 

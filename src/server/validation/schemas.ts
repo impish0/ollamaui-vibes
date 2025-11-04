@@ -118,7 +118,6 @@ export const settingsSchema = z.object({
     autoScroll: z.boolean(),
     showTimestamps: z.boolean(),
     sidebarDefaultOpen: z.boolean(),
-    compactMode: z.boolean(),
     messageDisplayDensity: z.enum(['comfortable', 'compact']),
   }).partial().optional(),
 

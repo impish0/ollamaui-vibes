@@ -128,7 +128,14 @@ export const ollamaApi = {
     model: string,
     message: string,
     opts?: { signal?: AbortSignal }
-  ): AsyncGenerator<{ content?: string; done?: boolean; error?: string; messageId?: string }> {
+  ): AsyncGenerator<{
+    content?: string;
+    done?: boolean;
+    error?: string;
+    messageId?: string;
+    userMessageSaved?: boolean;
+    userMessageId?: string;
+  }> {
     const response = await fetch(`${API_BASE}/ollama/chat/stream`, {
       method: 'POST',
       headers: {

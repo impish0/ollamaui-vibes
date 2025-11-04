@@ -99,3 +99,9 @@ export interface UpdateSystemPromptRequest {
 export interface Settings {
   ollamaBaseUrl: string;
 }
+
+export interface PaginatedMessagesResponse {
+  messages: Message[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}

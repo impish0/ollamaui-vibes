@@ -8,6 +8,7 @@ import type {
   CreateMessageRequest,
   CreateSystemPromptRequest,
   UpdateSystemPromptRequest,
+  PaginatedMessagesResponse,
 } from '../../shared/types';
 
 const API_BASE = '/api';
@@ -35,6 +36,14 @@ export const chatsApi = {
   getAll: () => fetchJson<Chat[]>(`${API_BASE}/chats`),
 
   getById: (id: string) => fetchJson<Chat>(`${API_BASE}/chats/${id}`),
+
+  getMessages: (chatId: string, limit: number = 50, cursor?: string) => {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (cursor) params.append('cursor', cursor);
+    return fetchJson<PaginatedMessagesResponse>(
+      `${API_BASE}/chats/${chatId}/messages?${params.toString()}`
+    );
+  },
 
   create: (data: CreateChatRequest) =>
     fetchJson<Chat>(`${API_BASE}/chats`, {

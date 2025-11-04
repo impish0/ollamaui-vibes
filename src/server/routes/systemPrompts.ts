@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { prisma } from '../db.js';
 import { ApiError } from '../middleware/errorHandler.js';
+import { validateBody, validateParams } from '../middleware/validation.js';
+import { createSystemPromptSchema, updateSystemPromptSchema, systemPromptIdParamSchema } from '../validation/schemas.js';
 import type { CreateSystemPromptRequest, UpdateSystemPromptRequest } from '../../shared/types.js';
 
 const router = Router();
@@ -19,12 +21,12 @@ router.get('/', async (_req, res, next) => {
 });
 
 // Get a single system prompt by ID
-router.get('/:id', async (req, res, next) => {
+router.get('/:promptId', validateParams(systemPromptIdParamSchema), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { promptId } = req.params;
 
     const prompt = await prisma.systemPrompt.findUnique({
-      where: { id },
+      where: { id: promptId },
     });
 
     if (!prompt) {
@@ -38,12 +40,17 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // Create a new system prompt
-router.post('/', async (req, res, next) => {
+router.post('/', validateBody(createSystemPromptSchema), async (req, res, next) => {
   try {
     const { name, content }: CreateSystemPromptRequest = req.body;
 
-    if (!name || !content) {
-      throw new ApiError('Name and content are required', 400);
+    // Check for duplicate name
+    const existing = await prisma.systemPrompt.findFirst({
+      where: { name },
+    });
+
+    if (existing) {
+      throw new ApiError('A system prompt with this name already exists', 409);
     }
 
     const prompt = await prisma.systemPrompt.create({
@@ -57,13 +64,27 @@ router.post('/', async (req, res, next) => {
 });
 
 // Update a system prompt
-router.patch('/:id', async (req, res, next) => {
+router.patch('/:promptId', validateParams(systemPromptIdParamSchema), validateBody(updateSystemPromptSchema), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { promptId } = req.params;
     const { name, content }: UpdateSystemPromptRequest = req.body;
 
+    // Check for duplicate name if updating name
+    if (name) {
+      const existing = await prisma.systemPrompt.findFirst({
+        where: {
+          name,
+          NOT: { id: promptId }
+        },
+      });
+
+      if (existing) {
+        throw new ApiError('A system prompt with this name already exists', 409);
+      }
+    }
+
     const prompt = await prisma.systemPrompt.update({
-      where: { id },
+      where: { id: promptId },
       data: {
         ...(name !== undefined && { name }),
         ...(content !== undefined && { content }),
@@ -77,12 +98,12 @@ router.patch('/:id', async (req, res, next) => {
 });
 
 // Delete a system prompt
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:promptId', validateParams(systemPromptIdParamSchema), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { promptId } = req.params;
 
     await prisma.systemPrompt.delete({
-      where: { id },
+      where: { id: promptId },
     });
 
     res.status(204).send();

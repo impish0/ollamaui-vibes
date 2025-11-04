@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { prisma } from '../db.js';
 import { ApiError } from '../middleware/errorHandler.js';
+import { validateBody, validateParams } from '../middleware/validation.js';
+import { createChatSchema, updateChatSchema, chatIdParamSchema } from '../validation/schemas.js';
 import type { CreateChatRequest, UpdateChatRequest } from '../../shared/types.js';
 
 const router = Router();
@@ -26,12 +28,12 @@ router.get('/', async (_req, res, next) => {
 });
 
 // Get a single chat by ID
-router.get('/:id', async (req, res, next) => {
+router.get('/:chatId', validateParams(chatIdParamSchema), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { chatId } = req.params;
 
     const chat = await prisma.chat.findUnique({
-      where: { id },
+      where: { id: chatId },
       include: {
         systemPrompt: true,
         messages: {
@@ -51,13 +53,9 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // Create a new chat
-router.post('/', async (req, res, next) => {
+router.post('/', validateBody(createChatSchema), async (req, res, next) => {
   try {
     const { model, systemPromptId }: CreateChatRequest = req.body;
-
-    if (!model) {
-      throw new ApiError('Model is required', 400);
-    }
 
     const chat = await prisma.chat.create({
       data: {
@@ -77,13 +75,13 @@ router.post('/', async (req, res, next) => {
 });
 
 // Update a chat
-router.patch('/:id', async (req, res, next) => {
+router.patch('/:chatId', validateParams(chatIdParamSchema), validateBody(updateChatSchema), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { chatId } = req.params;
     const { title, model, systemPromptId }: UpdateChatRequest = req.body;
 
     const chat = await prisma.chat.update({
-      where: { id },
+      where: { id: chatId },
       data: {
         ...(title !== undefined && { title }),
         ...(model !== undefined && { model }),
@@ -102,12 +100,12 @@ router.patch('/:id', async (req, res, next) => {
 });
 
 // Delete a chat
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:chatId', validateParams(chatIdParamSchema), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { chatId } = req.params;
 
     await prisma.chat.delete({
-      where: { id },
+      where: { id: chatId },
     });
 
     res.status(204).send();

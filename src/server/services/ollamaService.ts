@@ -63,7 +63,11 @@ export class OllamaService {
     };
   }
 
-  async *streamChat(request: ChatCompletionRequest): AsyncGenerator<string> {
+  async *streamChat(request: ChatCompletionRequest, timeoutMs: number = 120000): AsyncGenerator<string> {
+    // Create AbortController for timeout and cancellation
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+
     try {
       const payload: any = {
         model: request.model,
@@ -81,23 +85,32 @@ export class OllamaService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: abortController.signal, // Add abort signal
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama request failed: ${response.statusText}`);
+        throw new Error(`Ollama request failed: ${response.status} ${response.statusText}`);
       }
 
       if (!response.body) {
-        throw new Error('No response body');
+        throw new Error('No response body from Ollama');
       }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let lastChunkTime = Date.now();
+      const chunkTimeoutMs = 30000; // 30 seconds between chunks
 
       while (true) {
+        // Check if too much time has passed since last chunk
+        if (Date.now() - lastChunkTime > chunkTimeoutMs) {
+          throw new Error('Stream timeout: No data received for 30 seconds');
+        }
+
         const { done, value } = await reader.read();
         if (done) break;
 
+        lastChunkTime = Date.now();
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n').filter(line => line.trim());
 
@@ -108,14 +121,29 @@ export class OllamaService {
               yield data.message.content;
             }
             if (data.done) {
+              clearTimeout(timeoutId);
               return;
             }
           } catch (e) {
-            console.warn('Failed to parse chunk:', line);
+            console.warn('Failed to parse chunk:', line, e);
           }
         }
       }
+
+      clearTimeout(timeoutId);
     } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Better error messages for different failure scenarios
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error(`Stream timeout after ${timeoutMs / 1000} seconds`);
+        }
+        if (error.message.includes('fetch failed')) {
+          throw new Error(`Cannot connect to Ollama at ${this.baseUrl}. Is Ollama running?`);
+        }
+      }
+
       console.error('Error streaming from Ollama:', error);
       throw error;
     }

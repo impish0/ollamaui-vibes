@@ -62,6 +62,36 @@ export const useMessaging = () => {
         if (chunk.done && chunk.messageId) {
           // Streaming complete, refetch chat to get the final assistant message
           queryClient.invalidateQueries({ queryKey: queryKeys.chats.detail(chatId) });
+
+          // Also invalidate chats list immediately for sidebar update
+          queryClient.invalidateQueries({ queryKey: queryKeys.chats.all });
+
+          // If this might be the first exchange, poll for title updates
+          // (title generation happens async in background on server)
+          const currentChat = queryClient.getQueryData<Chat>(queryKeys.chats.detail(chatId));
+          const messageCount = (currentChat?.messages?.length || 0) + 1; // +1 for assistant message about to be saved
+
+          if (messageCount <= 2 && !currentChat?.title) {
+            // First exchange - title is being generated in background
+            // Poll for title updates every 500ms for up to 5 seconds
+            let attempts = 0;
+            const maxAttempts = 10;
+
+            const pollForTitle = setInterval(() => {
+              attempts++;
+
+              // Refetch both chat detail and chats list
+              queryClient.invalidateQueries({ queryKey: queryKeys.chats.detail(chatId) });
+              queryClient.invalidateQueries({ queryKey: queryKeys.chats.all });
+
+              // Check if we got a title
+              const updatedChat = queryClient.getQueryData<Chat>(queryKeys.chats.detail(chatId));
+              if (updatedChat?.title || attempts >= maxAttempts) {
+                clearInterval(pollForTitle);
+              }
+            }, 500);
+          }
+
           setStreamingContent('');
           setIsStreaming(false);
           abortController = null;

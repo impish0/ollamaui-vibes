@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSettings, useUpdateSettings, useResetCategory } from '../../hooks/useSettingsQuery';
 import { useModels } from '../../hooks/useModelsQuery';
-import { useSystemPromptsQuery } from '../../hooks/useSystemPromptsQuery';
+import { useSystemPrompts } from '../../hooks/useSystemPromptsQuery';
 import type { AppSettings } from '../../../shared/settings';
 import { Skeleton } from '../UI/Skeleton';
 
@@ -18,7 +18,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
 
   const { data: settings, isLoading } = useSettings();
   const { data: models } = useModels();
-  const { data: systemPrompts } = useSystemPromptsQuery();
+  const { data: systemPrompts } = useSystemPrompts();
   const updateSettings = useUpdateSettings();
   const resetCategory = useResetCategory();
 
@@ -113,7 +113,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                 <Skeleton variant="text" className="h-8 w-48" />
                 <Skeleton variant="text" className="h-4 w-full" />
                 <Skeleton variant="text" className="h-4 w-3/4" />
-                <Skeleton variant="rect" className="h-32 w-full" />
+                <Skeleton variant="rectangular" className="h-32 w-full" />
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -195,7 +195,7 @@ const TitleGenerationSettings = ({
   onChange,
 }: {
   data: any;
-  onChange: (key: string, value: any) => void;
+  onChange: (key: keyof AppSettings['titleGeneration'], value: any) => void;
 }) => (
   <div className="space-y-6">
     <div>
@@ -289,7 +289,7 @@ const ModelDefaultsSettings = ({
   systemPrompts,
 }: {
   data: any;
-  onChange: (key: string, value: any) => void;
+  onChange: (key: keyof AppSettings['model'], value: any) => void;
   models: any;
   systemPrompts: any;
 }) => (
@@ -389,7 +389,7 @@ const UIPreferencesSettings = ({
   onChange,
 }: {
   data: any;
-  onChange: (key: string, value: any) => void;
+  onChange: (key: keyof AppSettings['ui'], value: any) => void;
 }) => (
   <div className="space-y-6">
     <div>
@@ -470,7 +470,7 @@ const GeneralSettings = ({
   onChange,
 }: {
   data: any;
-  onChange: (key: string, value: any) => void;
+  onChange: (key: keyof AppSettings['general'], value: any) => void;
 }) => (
   <div className="space-y-6">
     <div>
@@ -544,7 +544,7 @@ const AdvancedSettings = ({
   onChange,
 }: {
   data: any;
-  onChange: (key: string, value: any) => void;
+  onChange: (key: keyof AppSettings['advanced'], value: any) => void;
 }) => (
   <div className="space-y-6">
     <div>

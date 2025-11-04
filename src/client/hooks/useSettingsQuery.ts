@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '../services/api';
 import { queryKeys } from '../lib/react-query';
 import type { AppSettings } from '../../shared/settings';
-import { showToast } from '../utils/toast';
+import { toastUtils } from '../utils/toast';
 
 /**
  * React Query hooks for app settings
@@ -53,14 +53,14 @@ export const useUpdateSettings = () => {
       return { previousSettings };
     },
     onSuccess: () => {
-      showToast.success('Settings updated successfully');
+      toastUtils.success('Settings updated successfully');
     },
     onError: (error, _variables, context) => {
       // Rollback on error
       if (context?.previousSettings) {
         queryClient.setQueryData(queryKeys.settings.all, context.previousSettings);
       }
-      showToast.error(`Failed to update settings: ${error.message}`);
+      toastUtils.error(`Failed to update settings: ${error.message}`);
     },
     onSettled: () => {
       // Always refetch after mutation completes
@@ -81,10 +81,10 @@ export const useUpdateSetting = () => {
     onSuccess: (updatedSettings) => {
       // Update cache with new settings
       queryClient.setQueryData(queryKeys.settings.all, updatedSettings);
-      showToast.success('Setting updated');
+      toastUtils.success('Setting updated');
     },
     onError: (error: Error) => {
-      showToast.error(`Failed to update setting: ${error.message}`);
+      toastUtils.error(`Failed to update setting: ${error.message}`);
     },
   });
 };
@@ -99,10 +99,10 @@ export const useResetSettings = () => {
     mutationFn: () => settingsApi.reset(),
     onSuccess: (defaultSettings) => {
       queryClient.setQueryData(queryKeys.settings.all, defaultSettings);
-      showToast.success('Settings reset to defaults');
+      toastUtils.success('Settings reset to defaults');
     },
     onError: (error: Error) => {
-      showToast.error(`Failed to reset settings: ${error.message}`);
+      toastUtils.error(`Failed to reset settings: ${error.message}`);
     },
   });
 };
@@ -117,10 +117,10 @@ export const useResetCategory = () => {
     mutationFn: (category: keyof AppSettings) => settingsApi.resetCategory(category),
     onSuccess: (updatedSettings, category) => {
       queryClient.setQueryData(queryKeys.settings.all, updatedSettings);
-      showToast.success(`${category} settings reset to defaults`);
+      toastUtils.success(`${category} settings reset to defaults`);
     },
     onError: (error: Error) => {
-      showToast.error(`Failed to reset category: ${error.message}`);
+      toastUtils.error(`Failed to reset category: ${error.message}`);
     },
   });
 };

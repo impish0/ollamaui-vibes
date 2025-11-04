@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSystemPrompts, useCreateSystemPrompt, useUpdateSystemPrompt, useDeleteSystemPrompt } from '../../hooks/useSystemPromptsQuery';
 import { SystemPromptSkeleton } from '../UI/Skeleton';
 import { toastUtils } from '../../utils/toast';
@@ -17,6 +17,24 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (editingId || isCreating) {
+          // If editing/creating, cancel that first
+          cancelEditing();
+        } else {
+          // Otherwise close modal
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [editingId, isCreating, onClose]);
 
   const handleCreate = async () => {
     if (!name.trim() || !content.trim()) {

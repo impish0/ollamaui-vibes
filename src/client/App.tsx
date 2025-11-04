@@ -1,9 +1,13 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense, useMemo } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useChatStore } from './store/chatStore';
 import { useChat } from './hooks/useChat';
+import { useCreateChat } from './hooks/useChatsQuery';
+import { useCachedModels } from './hooks/useModelsQuery';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Layout/Header';
 import { Sidebar } from './components/Layout/Sidebar';
+import { toastUtils } from './utils/toast';
 
 // Lazy load ChatWindow (loaded when user opens a chat)
 const ChatWindow = lazy(() =>
@@ -23,8 +27,50 @@ const ChatWindowLoading = () => (
 );
 
 function App() {
-  const { darkMode } = useChatStore();
+  const { darkMode, toggleDarkMode, toggleSidebar, setCurrentChatId } = useChatStore();
   const { currentChat } = useChat();
+  const createChatMutation = useCreateChat();
+  const { data: modelsData } = useCachedModels();
+
+  const models = modelsData?.models || [];
+
+  // Keyboard shortcuts
+  const shortcuts = useMemo(
+    () => [
+      {
+        key: 'k',
+        ctrl: true,
+        description: 'Create new chat',
+        handler: async () => {
+          if (models.length === 0) {
+            toastUtils.error('No models available');
+            return;
+          }
+          try {
+            const newChat = await createChatMutation.mutateAsync({ model: models[0].name });
+            setCurrentChatId(newChat.id);
+          } catch (error) {
+            console.error('Failed to create chat:', error);
+          }
+        },
+      },
+      {
+        key: 'b',
+        ctrl: true,
+        description: 'Toggle sidebar',
+        handler: () => toggleSidebar(),
+      },
+      {
+        key: 'd',
+        ctrl: true,
+        description: 'Toggle dark mode',
+        handler: () => toggleDarkMode(),
+      },
+    ],
+    [models, createChatMutation, setCurrentChatId, toggleSidebar, toggleDarkMode]
+  );
+
+  useKeyboardShortcuts(shortcuts);
 
   useEffect(() => {
     // Apply dark mode class to document

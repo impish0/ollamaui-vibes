@@ -52,31 +52,46 @@ export const localhostOnly = (req: Request, res: Response, next: NextFunction) =
 };
 
 // Sanitize user input to prevent injection attacks
+// Express 5: req.body and req.query are read-only, so we sanitize in-place
 export const sanitizeInput = (req: Request, _res: Response, next: NextFunction) => {
   // Basic sanitization for string fields
-  const sanitize = (obj: any): any => {
-    if (typeof obj === 'string') {
+  const sanitizeValue = (value: any): any => {
+    if (typeof value === 'string') {
       // Remove potentially dangerous characters
-      return obj.trim();
+      return value.trim();
     }
-    if (Array.isArray(obj)) {
-      return obj.map(sanitize);
+    if (Array.isArray(value)) {
+      return value.map(sanitizeValue);
     }
-    if (obj && typeof obj === 'object') {
+    if (value && typeof value === 'object') {
       const sanitized: any = {};
-      for (const key in obj) {
-        sanitized[key] = sanitize(obj[key]);
+      for (const key in value) {
+        sanitized[key] = sanitizeValue(value[key]);
       }
       return sanitized;
     }
-    return obj;
+    return value;
   };
 
-  if (req.body) {
-    req.body = sanitize(req.body);
+  // Sanitize in-place by modifying object properties (Express 5 compatible)
+  const sanitizeObjectInPlace = (obj: any) => {
+    if (!obj || typeof obj !== 'object') return;
+
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        obj[key] = sanitizeValue(obj[key]);
+      }
+    }
+  };
+
+  if (req.body && typeof req.body === 'object') {
+    sanitizeObjectInPlace(req.body);
   }
-  if (req.query) {
-    req.query = sanitize(req.query);
+  if (req.query && typeof req.query === 'object') {
+    sanitizeObjectInPlace(req.query);
+  }
+  if (req.params && typeof req.params === 'object') {
+    sanitizeObjectInPlace(req.params);
   }
 
   next();

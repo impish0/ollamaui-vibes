@@ -1,14 +1,76 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense, useMemo } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useChatStore } from './store/chatStore';
 import { useChat } from './hooks/useChat';
+import { useCreateChat } from './hooks/useChatsQuery';
+import { useCachedModels } from './hooks/useModelsQuery';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Layout/Header';
 import { Sidebar } from './components/Layout/Sidebar';
-import { ChatWindow } from './components/Chat/ChatWindow';
+import { toastUtils } from './utils/toast';
+
+// Lazy load ChatWindow (loaded when user opens a chat)
+const ChatWindow = lazy(() =>
+  import('./components/Chat/ChatWindow').then((module) => ({
+    default: module.ChatWindow,
+  }))
+);
+
+// Loading fallback for ChatWindow
+const ChatWindowLoading = () => (
+  <div className="flex-1 flex items-center justify-center">
+    <div className="text-gray-500 dark:text-gray-400 flex flex-col items-center gap-3">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <span className="text-sm">Loading chat...</span>
+    </div>
+  </div>
+);
 
 function App() {
-  const { darkMode } = useChatStore();
+  const { darkMode, toggleDarkMode, toggleSidebar, setCurrentChatId } = useChatStore();
   const { currentChat } = useChat();
+  const createChatMutation = useCreateChat();
+  const { data: modelsData } = useCachedModels();
+
+  const models = modelsData?.models || [];
+
+  // Keyboard shortcuts
+  const shortcuts = useMemo(
+    () => [
+      {
+        key: 'k',
+        ctrl: true,
+        description: 'Create new chat',
+        handler: async () => {
+          if (models.length === 0) {
+            toastUtils.error('No models available');
+            return;
+          }
+          try {
+            const newChat = await createChatMutation.mutateAsync({ model: models[0].name });
+            setCurrentChatId(newChat.id);
+          } catch (error) {
+            console.error('Failed to create chat:', error);
+          }
+        },
+      },
+      {
+        key: 'b',
+        ctrl: true,
+        description: 'Toggle sidebar',
+        handler: () => toggleSidebar(),
+      },
+      {
+        key: 'd',
+        ctrl: true,
+        description: 'Toggle dark mode',
+        handler: () => toggleDarkMode(),
+      },
+    ],
+    [models, createChatMutation, setCurrentChatId, toggleSidebar, toggleDarkMode]
+  );
+
+  useKeyboardShortcuts(shortcuts);
 
   useEffect(() => {
     // Apply dark mode class to document
@@ -28,7 +90,9 @@ function App() {
           <Sidebar />
           <main className="flex-1 flex flex-col overflow-hidden">
             {currentChat ? (
-              <ChatWindow chat={currentChat} />
+              <Suspense fallback={<ChatWindowLoading />}>
+                <ChatWindow chat={currentChat} />
+              </Suspense>
             ) : (
               <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 <div className="text-center space-y-4 p-8">

@@ -70,6 +70,12 @@ export const paginationSchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
+// Cursor-based pagination for messages (better for infinite scroll)
+export const messagesPaginationSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  cursor: z.string().cuid().optional(), // Message ID to start from
+});
+
 export const chatIdParamSchema = z.object({
   chatId: z.string().cuid('Invalid chat ID'),
 });
@@ -87,3 +93,4 @@ export type CreateSystemPromptInput = z.infer<typeof createSystemPromptSchema>;
 export type UpdateSystemPromptInput = z.infer<typeof updateSystemPromptSchema>;
 export type UpdateOllamaConfigInput = z.infer<typeof updateOllamaConfigSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
+export type MessagesPaginationInput = z.infer<typeof messagesPaginationSchema>;

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSystemPrompts, useCreateSystemPrompt, useUpdateSystemPrompt, useDeleteSystemPrompt } from '../../hooks/useSystemPromptsQuery';
+import { SystemPromptSkeleton } from '../UI/Skeleton';
 import { toastUtils } from '../../utils/toast';
 
 interface SystemPromptModalProps {
@@ -16,6 +17,24 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (editingId || isCreating) {
+          // If editing/creating, cancel that first
+          cancelEditing();
+        } else {
+          // Otherwise close modal
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [editingId, isCreating, onClose]);
 
   const handleCreate = async () => {
     if (!name.trim() || !content.trim()) {
@@ -92,8 +111,8 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-fade-in-scale">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-2xl font-bold">System Prompts</h2>
@@ -171,12 +190,16 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
           {/* Prompts List */}
           <div className="space-y-3">
             {isLoading ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                Loading system prompts...
-              </div>
+              <SystemPromptSkeleton />
             ) : systemPrompts.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                No system prompts yet. Create one to get started!
+              <div className="text-center py-12 space-y-3">
+                <div className="text-5xl opacity-50">📝</div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                  No system prompts yet
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Create custom system prompts to guide your AI conversations
+                </p>
               </div>
             ) : (
               systemPrompts.map((prompt) => (

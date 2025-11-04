@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { chatsApi } from '../services/api';
 import { queryKeys } from '../lib/react-query';
 import { toastUtils } from '../utils/toast';
@@ -183,5 +183,26 @@ export const useDeleteChat = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.chats.all });
       toastUtils.success('Chat deleted successfully');
     },
+  });
+};
+
+/**
+ * Fetch paginated messages for a chat with infinite scroll support
+ * Perfect for handling large chats efficiently
+ */
+export const useChatMessages = (chatId: string | null, limit: number = 50) => {
+  return useInfiniteQuery({
+    queryKey: chatId ? queryKeys.chats.messages(chatId) : ['chats', 'messages', 'none'],
+    queryFn: ({ pageParam }) => {
+      if (!chatId) throw new Error('No chat ID provided');
+      return chatsApi.getMessages(chatId, limit, pageParam);
+    },
+    enabled: !!chatId,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => {
+      return lastPage.hasMore ? lastPage.nextCursor : undefined;
+    },
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };

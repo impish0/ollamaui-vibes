@@ -12,38 +12,44 @@ datasource db {
 
 model Chat {
   id             String        @id @default(cuid())
-  title          String?
-  model          String        // Last used model
+  title          String?       // Max 500 chars, validated by Zod
+  model          String        // Last used model (max 200 chars)
   systemPromptId String?
-  systemPrompt   SystemPrompt? @relation(fields: [systemPromptId], references: [id])
+  systemPrompt   SystemPrompt? @relation(fields: [systemPromptId], references: [id], onDelete: SetNull)
   messages       Message[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  // Indexes for common queries
   @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model Message {
   id        String   @id @default(cuid())
   chatId    String
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  role      String   // 'user', 'assistant', 'system'
-  content   String
-  model     String?  // Track which model generated this
+  role      String   // 'user', 'assistant', 'system' (validated by Zod)
+  content   String   // Max 100KB (validated by Zod)
+  model     String?  // Track which model generated this (max 200 chars)
   createdAt DateTime @default(now())
 
+  // Compound index for efficient chat message queries
   @@index([chatId, createdAt])
+  // Index for role-based queries
+  @@index([role])
 }
 
 model SystemPrompt {
   id        String   @id @default(cuid())
-  name      String   @unique
-  content   String
+  name      String   @unique // Max 100 chars, alphanumeric + spaces/hyphens (validated by Zod)
+  content   String   // Max 10KB (validated by Zod)
   chats     Chat[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([name])
+  @@index([createdAt])
 }
 
 model Settings {

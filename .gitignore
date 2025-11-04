@@ -62,3 +62,4 @@ temp/
 .cache/
 .parcel-cache
 *.db
+logs/

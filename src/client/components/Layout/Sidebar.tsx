@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useChatStore } from '../../store/chatStore';
-import { useChat } from '../../hooks/useChat';
-import { useModels } from '../../hooks/useModels';
+import { useChats, useCreateChat, useDeleteChat } from '../../hooks/useChatsQuery';
+import { useCachedModels } from '../../hooks/useModelsQuery';
 import { SystemPromptModal } from '../SystemPrompts/SystemPromptModal';
 import { toastUtils } from '../../utils/toast';
 
 export const Sidebar = () => {
-  const { sidebarOpen, currentChatId, darkMode, toggleDarkMode, toggleSidebar } = useChatStore();
-  const { chats, createChat, deleteChat, setCurrentChatId } = useChat();
-  const { models } = useModels();
+  const { sidebarOpen, currentChatId, darkMode, toggleDarkMode, toggleSidebar, setCurrentChatId } = useChatStore();
+  const { data: chats = [], isLoading: chatsLoading } = useChats();
+  const { data: modelsData } = useCachedModels();
+  const createChatMutation = useCreateChat();
+  const deleteChatMutation = useDeleteChat();
   const [showSystemPrompts, setShowSystemPrompts] = useState(false);
-  const [isCreatingChat, setIsCreatingChat] = useState(false);
+
+  const models = modelsData?.models || [];
 
   const handleNewChat = async () => {
     if (models.length === 0) {
@@ -19,14 +22,11 @@ export const Sidebar = () => {
     }
 
     try {
-      setIsCreatingChat(true);
-      await createChat(models[0].name);
-      toastUtils.success('Chat created successfully');
+      const newChat = await createChatMutation.mutateAsync({ model: models[0].name });
+      setCurrentChatId(newChat.id);
     } catch (error) {
       console.error('Failed to create chat:', error);
-      toastUtils.error('Failed to create chat. Please try again.');
-    } finally {
-      setIsCreatingChat(false);
+      // Error toast already shown by mutation
     }
   };
 
@@ -41,11 +41,14 @@ export const Sidebar = () => {
 
     if (confirmed) {
       try {
-        await deleteChat(chatId);
-        toastUtils.success('Chat deleted successfully');
+        await deleteChatMutation.mutateAsync(chatId);
+        // If we deleted the current chat, clear the selection
+        if (chatId === currentChatId) {
+          setCurrentChatId(null);
+        }
       } catch (error) {
         console.error('Failed to delete chat:', error);
-        toastUtils.error('Failed to delete chat. Please try again.');
+        // Error toast already shown by mutation
       }
     }
   };
@@ -139,7 +142,7 @@ export const Sidebar = () => {
         <div className="p-4 space-y-2">
           <button
             onClick={handleNewChat}
-            disabled={isCreatingChat}
+            disabled={createChatMutation.isPending}
             className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
           >
             <svg
@@ -168,7 +171,11 @@ export const Sidebar = () => {
 
         <div className="flex-1 overflow-y-auto scrollbar-thin px-2">
           <div className="space-y-1 pb-4">
-            {chats.length === 0 ? (
+            {chatsLoading ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+                Loading chats...
+              </div>
+            ) : chats.length === 0 ? (
               <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
                 No chats yet. Create one to get started!
               </div>

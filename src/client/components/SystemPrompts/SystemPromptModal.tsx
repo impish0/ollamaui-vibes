@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSystemPrompts } from '../../hooks/useSystemPrompts';
+import { useSystemPrompts, useCreateSystemPrompt, useUpdateSystemPrompt, useDeleteSystemPrompt } from '../../hooks/useSystemPromptsQuery';
 import { toastUtils } from '../../utils/toast';
 
 interface SystemPromptModalProps {
@@ -7,8 +7,11 @@ interface SystemPromptModalProps {
 }
 
 export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
-  const { systemPrompts, createSystemPrompt, updateSystemPrompt, deleteSystemPrompt } =
-    useSystemPrompts();
+  const { data: systemPrompts = [], isLoading } = useSystemPrompts();
+  const createMutation = useCreateSystemPrompt();
+  const updateMutation = useUpdateSystemPrompt();
+  const deleteMutation = useDeleteSystemPrompt();
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
@@ -21,14 +24,14 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
     }
 
     try {
-      await createSystemPrompt(name.trim(), content.trim());
+      await createMutation.mutateAsync({ name: name.trim(), content: content.trim() });
       setName('');
       setContent('');
       setIsCreating(false);
-      toastUtils.success('System prompt created successfully');
+      // Success toast already shown by mutation
     } catch (error) {
       console.error('Failed to create system prompt:', error);
-      toastUtils.error('Failed to create system prompt. Please try again.');
+      // Error toast already shown by mutation
     }
   };
 
@@ -39,14 +42,17 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
     }
 
     try {
-      await updateSystemPrompt(id, { name: name.trim(), content: content.trim() });
+      await updateMutation.mutateAsync({
+        promptId: id,
+        updates: { name: name.trim(), content: content.trim() }
+      });
       setEditingId(null);
       setName('');
       setContent('');
-      toastUtils.success('System prompt updated successfully');
+      // Success toast already shown by mutation
     } catch (error) {
       console.error('Failed to update system prompt:', error);
-      toastUtils.error('Failed to update system prompt. Please try again.');
+      // Error toast already shown by mutation
     }
   };
 
@@ -59,11 +65,11 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
 
     if (confirmed) {
       try {
-        await deleteSystemPrompt(id);
-        toastUtils.success('System prompt deleted successfully');
+        await deleteMutation.mutateAsync(id);
+        // Success toast already shown by mutation
       } catch (error) {
         console.error('Failed to delete system prompt:', error);
-        toastUtils.error('Failed to delete system prompt. Please try again.');
+        // Error toast already shown by mutation
       }
     }
   };
@@ -164,7 +170,11 @@ export const SystemPromptModal = ({ onClose }: SystemPromptModalProps) => {
 
           {/* Prompts List */}
           <div className="space-y-3">
-            {systemPrompts.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                Loading system prompts...
+              </div>
+            ) : systemPrompts.length === 0 ? (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 No system prompts yet. Create one to get started!
               </div>

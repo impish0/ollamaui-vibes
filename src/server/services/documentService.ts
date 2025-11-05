@@ -1,4 +1,3 @@
-import * as pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import { prisma } from '../db.js';
 import { embeddingService } from './embeddingService.js';
@@ -22,8 +21,9 @@ class DocumentService {
     try {
       // PDF files
       if (contentType === 'application/pdf' || filename.endsWith('.pdf')) {
-        // pdf-parse is a CommonJS module, so we need to call it this way in ESM
-        const data = await (pdfParse as any)(buffer);
+        // Use dynamic import for pdf-parse (CommonJS module in ESM context)
+        const pdfParse = (await import('pdf-parse')).default;
+        const data = await pdfParse(buffer);
         return data.text;
       }
 

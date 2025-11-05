@@ -60,10 +60,12 @@ class VectorService {
             if (fs.existsSync(metadataPath)) {
               const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
               const index = new HierarchicalNSW('cosine', metadata.dimension);
-              await index.readIndex(path.join(this.vectorDataPath, file), metadata.maxElements);
+              // readIndex takes (filename, allowReplaceDeleted) - second param is boolean, not number
+              await index.readIndex(path.join(this.vectorDataPath, file));
+              index.resizeIndex(metadata.maxElements); // Set max elements after loading
               this.indexes.set(collectionId, index);
               this.indexMetadata.set(collectionId, metadata);
-              logger.info('Loaded existing index', { collectionId, dimension: metadata.dimension });
+              logger.info('Loaded existing index', { collectionId, dimension: metadata.dimension, vectorCount: index.getCurrentCount() });
             } else {
               logger.warn('Index file exists but metadata file is missing', {
                 collectionId,

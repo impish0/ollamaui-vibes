@@ -209,6 +209,7 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
 
     let assistantResponse = '';
     let userMessageId: string | null = null;
+    const startTime = Date.now();
 
     try {
       // Save both messages in a transaction-like operation
@@ -224,6 +225,17 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
 
       // Send confirmation that user message was saved
       res.write(`data: ${JSON.stringify({ userMessageSaved: true, userMessageId: userMessage.id })}\n\n`);
+
+      // Log the full prompt being sent to the model
+      logInfo('📝 PROMPT SENT TO MODEL', {
+        chatId,
+        model,
+        estimatedTokens,
+        contextWindowSize,
+        ragEnabled: !!(collectionIds && collectionIds.length > 0),
+        collectionCount: collectionIds?.length || 0,
+        messagesCount: messages.length,
+      });
 
       // Stream from Ollama with appropriate context window size
       for await (const chunk of ollamaService.streamChat({
@@ -260,6 +272,33 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
           model,
           updatedAt: new Date(),
         },
+      });
+
+      // Save detailed prompt log to database
+      const responseTime = Date.now() - startTime;
+      const responseTokens = Math.ceil(assistantResponse.length / 4); // Rough estimate
+
+      await prisma.promptLog.create({
+        data: {
+          chatId,
+          model,
+          messages: JSON.stringify(messages, null, 2),
+          ragContext: ragContext || null,
+          collectionIds: collectionIds ? JSON.stringify(collectionIds) : null,
+          estimatedTokens,
+          contextWindowSize,
+          responseTokens,
+          response: assistantResponse,
+          responseTime,
+          userMessage: message,
+        },
+      });
+
+      logInfo('✅ RESPONSE COMPLETED', {
+        chatId,
+        responseTime: `${responseTime}ms`,
+        responseTokens,
+        totalTokens: estimatedTokens + responseTokens,
       });
 
       // Title generation logic with settings-based triggers
@@ -321,6 +360,30 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
       res.end();
     } catch (streamError) {
       logError('Stream error occurred', streamError, { chatId, model });
+
+      // Log the error to database
+      const responseTime = Date.now() - startTime;
+      try {
+        await prisma.promptLog.create({
+          data: {
+            chatId,
+            model,
+            messages: JSON.stringify(messages, null, 2),
+            ragContext: ragContext || null,
+            collectionIds: collectionIds ? JSON.stringify(collectionIds) : null,
+            estimatedTokens,
+            contextWindowSize,
+            responseTokens: null,
+            response: null,
+            responseTime,
+            error: streamError instanceof Error ? streamError.message : String(streamError),
+            userMessage: message,
+          },
+        });
+      } catch (logError) {
+        // If logging fails, just log to console
+        console.error('Failed to save error to prompt log:', logError);
+      }
 
       // Critical: If we saved a user message but streaming failed,
       // save an error message so the user knows what happened

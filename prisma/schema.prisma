@@ -88,3 +88,24 @@ model Document {
   @@index([collectionId, createdAt])
   @@index([status])
 }
+
+model PromptLog {
+  id                 String   @id @default(cuid())
+  chatId             String?  // Optional link to chat
+  model              String   // Model used
+  messages           String   // Full messages array as JSON
+  ragContext         String?  // RAG context injected (if any)
+  collectionIds      String?  // JSON array of collection IDs used
+  estimatedTokens    Int      // Estimated input tokens
+  contextWindowSize  Int      // Context window size used
+  responseTokens     Int?     // Response tokens (if available)
+  response           String?  // Full response from model
+  responseTime       Int?     // Response time in milliseconds
+  error              String?  // Error message if failed
+  userMessage        String   // The actual user message for easy searching
+  createdAt          DateTime @default(now())
+
+  @@index([chatId, createdAt])
+  @@index([model])
+  @@index([createdAt])
+}

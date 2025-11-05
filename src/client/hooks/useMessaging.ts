@@ -14,7 +14,7 @@ export const useMessaging = () => {
   const [streamingContent, setStreamingContent] = useState('');
   let abortController: AbortController | null = null;
 
-  const sendMessage = async (chatId: string, message: string, model: string) => {
+  const sendMessage = async (chatId: string, message: string, model: string, collectionIds?: string[]) => {
     try {
       setIsStreaming(true);
       setStreamingContent('');
@@ -40,7 +40,10 @@ export const useMessaging = () => {
       });
 
       // Stream response from Ollama
-      for await (const chunk of ollamaApi.streamChat(chatId, model, message, { signal: abortController.signal })) {
+      for await (const chunk of ollamaApi.streamChat(chatId, model, message, {
+        signal: abortController.signal,
+        collectionIds,
+      })) {
         if (chunk.userMessageSaved && chunk.userMessageId) {
           // Replace the temporary user message with the real one from server
           queryClient.setQueryData<Chat>(queryKeys.chats.detail(chatId), (oldChat) => {

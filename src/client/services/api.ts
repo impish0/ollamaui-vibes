@@ -127,7 +127,7 @@ export const ollamaApi = {
     chatId: string,
     model: string,
     message: string,
-    opts?: { signal?: AbortSignal }
+    opts?: { signal?: AbortSignal; collectionIds?: string[] }
   ): AsyncGenerator<{
     content?: string;
     done?: boolean;
@@ -141,7 +141,12 @@ export const ollamaApi = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ chatId, model, message }),
+      body: JSON.stringify({
+        chatId,
+        model,
+        message,
+        collectionIds: opts?.collectionIds,
+      }),
       signal: opts?.signal,
     });
 

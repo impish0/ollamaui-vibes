@@ -9,9 +9,17 @@ interface SidebarProps {
   onOpenSettings?: () => void;
   defaultModel?: string;
   defaultSystemPromptId?: string | null;
+  currentView?: 'chat' | 'collections';
+  onViewChange?: (view: 'chat' | 'collections') => void;
 }
 
-export const Sidebar = ({ onOpenSettings, defaultModel, defaultSystemPromptId }: SidebarProps) => {
+export const Sidebar = ({
+  onOpenSettings,
+  defaultModel,
+  defaultSystemPromptId,
+  currentView = 'chat',
+  onViewChange
+}: SidebarProps) => {
   const { sidebarOpen, currentChatId, toggleSidebar, setCurrentChatId } = useChatStore();
   const { data: chats = [], isLoading: chatsLoading } = useChats();
   const createChatMutation = useCreateChat();
@@ -138,38 +146,100 @@ export const Sidebar = ({ onOpenSettings, defaultModel, defaultSystemPromptId }:
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="p-4 space-y-2">
-          <button
-            onClick={handleNewChat}
-            disabled={createChatMutation.isPending}
-            className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        {/* Navigation Tabs */}
+        {onViewChange && (
+          <div className="px-4 pt-4 pb-2">
+            <div className="flex gap-2 p-1 bg-gray-200 dark:bg-gray-800 rounded-lg">
+              <button
+                onClick={() => onViewChange('chat')}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  currentView === 'chat'
+                    ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                  Chats
+                </div>
+              </button>
+              <button
+                onClick={() => onViewChange('collections')}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  currentView === 'collections'
+                    ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                  Collections
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons - Show only in chat view */}
+        {currentView === 'chat' && (
+          <div className="p-4 space-y-2">
+            <button
+              onClick={handleNewChat}
+              disabled={createChatMutation.isPending}
+              className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            New Chat
-          </button>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              New Chat
+            </button>
 
-          <button
-            onClick={() => setShowSystemPrompts(true)}
-            className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors text-sm"
-          >
-            System Prompts
-          </button>
-        </div>
+            <button
+              onClick={() => setShowSystemPrompts(true)}
+              className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors text-sm"
+            >
+              System Prompts
+            </button>
+          </div>
+        )}
 
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-2">
+        {/* Chat List - Show only in chat view */}
+        {currentView === 'chat' && (
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-2">
           <div className="space-y-1 pb-4">
             {chatsLoading ? (
               <ChatListSkeleton />
@@ -238,7 +308,17 @@ export const Sidebar = ({ onOpenSettings, defaultModel, defaultSystemPromptId }:
               ))
             )}
           </div>
-        </div>
+          </div>
+        )}
+
+        {/* Collections View Placeholder */}
+        {currentView === 'collections' && (
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4">
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+              <p>Collections are managed in the main area</p>
+            </div>
+          </div>
+        )}
       </aside>
 
       {showSystemPrompts && (

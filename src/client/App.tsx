@@ -8,6 +8,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Layout/Header';
 import { Sidebar } from './components/Layout/Sidebar';
 import { SettingsModal } from './components/Settings';
+import { CollectionsPage } from './pages/Collections';
 import { toastUtils } from './utils/toast';
 
 // Lazy load ChatWindow (loaded when user opens a chat)
@@ -34,6 +35,7 @@ function App() {
   const createChatMutation = useCreateChat();
   const { data: modelsData } = useCachedModels();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<'chat' | 'collections'>('chat');
 
   const models = modelsData?.models || [];
 
@@ -136,9 +138,13 @@ function App() {
             onOpenSettings={() => setIsSettingsOpen(true)}
             defaultModel={defaultModel}
             defaultSystemPromptId={settings?.model.defaultSystemPromptId}
+            currentView={currentView}
+            onViewChange={setCurrentView}
           />
           <main className="flex-1 flex flex-col overflow-hidden">
-            {currentChat ? (
+            {currentView === 'collections' ? (
+              <CollectionsPage />
+            ) : currentChat ? (
               <Suspense fallback={<ChatWindowLoading />}>
                 <ChatWindow chat={currentChat} />
               </Suspense>

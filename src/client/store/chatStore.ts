@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Chat, Message, SystemPrompt, OllamaModel } from '../../shared/types';
+import type { Chat, Message, SystemPrompt, OllamaModel, Collection } from '../../shared/types';
 
 interface ChatStore {
   // State
@@ -14,6 +14,12 @@ interface ChatStore {
   sidebarOpen: boolean;
   comparisonMode: boolean;
   comparisonChatId: string | null;
+
+  // RAG State
+  collections: Collection[];
+  selectedCollectionIds: string[];
+  ragEnabled: boolean;
+  embeddingModels: OllamaModel[];
 
   // Actions
   setChats: (chats: Chat[]) => void;
@@ -40,6 +46,16 @@ interface ChatStore {
   toggleDarkMode: () => void;
   toggleSidebar: () => void;
   setComparisonMode: (enabled: boolean, chatId?: string) => void;
+
+  // RAG Actions
+  setCollections: (collections: Collection[]) => void;
+  addCollection: (collection: Collection) => void;
+  updateCollection: (collectionId: string, updates: Partial<Collection>) => void;
+  deleteCollection: (collectionId: string) => void;
+  setSelectedCollectionIds: (ids: string[]) => void;
+  toggleCollectionSelection: (collectionId: string) => void;
+  setRagEnabled: (enabled: boolean) => void;
+  setEmbeddingModels: (models: OllamaModel[]) => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -55,6 +71,12 @@ export const useChatStore = create<ChatStore>((set) => ({
   sidebarOpen: true,
   comparisonMode: false,
   comparisonChatId: null,
+
+  // RAG Initial State
+  collections: [],
+  selectedCollectionIds: [],
+  ragEnabled: false,
+  embeddingModels: [],
 
   // Actions
   setChats: (chats) => set({ chats }),
@@ -145,4 +167,34 @@ export const useChatStore = create<ChatStore>((set) => ({
     comparisonMode: enabled,
     comparisonChatId: enabled ? chatId || null : null,
   }),
+
+  // RAG Actions
+  setCollections: (collections) => set({ collections }),
+
+  addCollection: (collection) => set((state) => ({
+    collections: [collection, ...state.collections],
+  })),
+
+  updateCollection: (collectionId, updates) => set((state) => ({
+    collections: state.collections.map((col) =>
+      col.id === collectionId ? { ...col, ...updates } : col
+    ),
+  })),
+
+  deleteCollection: (collectionId) => set((state) => ({
+    collections: state.collections.filter((col) => col.id !== collectionId),
+    selectedCollectionIds: state.selectedCollectionIds.filter((id) => id !== collectionId),
+  })),
+
+  setSelectedCollectionIds: (ids) => set({ selectedCollectionIds: ids }),
+
+  toggleCollectionSelection: (collectionId) => set((state) => ({
+    selectedCollectionIds: state.selectedCollectionIds.includes(collectionId)
+      ? state.selectedCollectionIds.filter((id) => id !== collectionId)
+      : [...state.selectedCollectionIds, collectionId],
+  })),
+
+  setRagEnabled: (enabled) => set({ ragEnabled: enabled }),
+
+  setEmbeddingModels: (models) => set({ embeddingModels: models }),
 }));

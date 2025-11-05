@@ -1,5 +1,5 @@
-import * as hnswlib from 'hnswlib-node';
-const { HierarchicalNSW } = hnswlib;
+import hnswlibModule from 'hnswlib-node';
+const { HierarchicalNSW } = hnswlibModule;
 import { logger } from '../utils/logger.js';
 import path from 'path';
 import fs from 'fs';

@@ -1,4 +1,4 @@
-import * as pdfParse from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import { prisma } from '../db.js';
 import { embeddingService } from './embeddingService.js';
@@ -22,7 +22,7 @@ class DocumentService {
     try {
       // PDF files
       if (contentType === 'application/pdf' || filename.endsWith('.pdf')) {
-        const data = await (pdfParse as any).default(buffer);
+        const data = await pdfParse(buffer);
         return data.text;
       }
 

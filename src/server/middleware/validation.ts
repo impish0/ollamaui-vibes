@@ -25,7 +25,17 @@ export const validate = (schema: z.ZodSchema, target: ValidationTarget = 'body')
 
       // Replace the request data with the parsed (and potentially transformed) data
       // This ensures type safety and applies default values
-      req[target] = parsed;
+      // Note: req.query is read-only, so we use Object.defineProperty for it
+      if (target === 'query') {
+        Object.defineProperty(req, 'query', {
+          value: parsed,
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        });
+      } else {
+        (req as any)[target] = parsed;
+      }
 
       next();
     } catch (error) {

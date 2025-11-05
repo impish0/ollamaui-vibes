@@ -47,6 +47,8 @@ Located in [prisma/schema.prisma](prisma/schema.prisma):
 - **Message** - Individual messages (user/assistant/system) with cascade delete on chat removal
 - **SystemPrompt** - Reusable prompt templates with unique names
 - **Settings** - Key-value store for app configuration (e.g., Ollama base URL)
+- **Collection** - RAG document collections with configurable embedding models
+- **Document** - Uploaded documents with processing status, chunk count, and metadata
 
 All models use `cuid()` for IDs. Messages have cascading deletes when parent chat is deleted.
 
@@ -63,9 +65,26 @@ All routes in [src/server/routes/](src/server/routes/):
 - `/api/chats` - CRUD for chats
 - `/api/messages` - Create messages, stream chat responses (SSE)
 - `/api/system-prompts` - CRUD for system prompts
-- `/api/ollama` - Get models, health check, update base URL
+- `/api/ollama` - Get models, health check, update base URL, get embedding models
+- `/api/collections` - CRUD for RAG collections
+- `/api/documents` - Upload, list, delete, search documents
 
 The `/api/messages/stream` endpoint uses Server-Sent Events (SSE) to stream Ollama responses in real-time.
+
+### RAG (Retrieval-Augmented Generation)
+Full RAG pipeline with ChromaDB integration:
+- **Vector Storage**: ChromaDB for semantic search (runs on port 8000)
+- **Embedding Models**: Configurable per collection (see [EMBEDDING_MODELS.md](EMBEDDING_MODELS.md))
+  - Recommended: `qwen3-embedding:8b` (best), `mxbai-embed-large`, `nomic-embed-text`
+  - Each collection can use a different embedding model
+  - Get available models: `GET /api/ollama/models/embeddings`
+- **Document Processing**: PDF, DOCX, TXT, MD, JSON, CSV, and code files
+- **Text Chunking**: Smart 512-char chunks with 50-char overlap
+- **Context Injection**: Automatically retrieves top-5 relevant chunks and injects into chat
+- **Services**:
+  - [chromaService.ts](src/server/services/chromaService.ts) - Vector operations
+  - [embeddingService.ts](src/server/services/embeddingService.ts) - Text chunking & embeddings
+  - [documentService.ts](src/server/services/documentService.ts) - File parsing & orchestration
 
 ### Security Middleware
 Located in [src/server/middleware/security.ts](src/server/middleware/security.ts):
@@ -113,15 +132,18 @@ See [.env.example](.env.example):
 - `NODE_ENV` - Environment mode
 - `DATABASE_URL` - Prisma SQLite connection string (default: `file:./dev.db`)
   - Note: Path is relative to the `prisma/` directory, so `file:./dev.db` creates the database at `prisma/dev.db`
+- `CHROMA_URL` - ChromaDB server URL (default: `http://localhost:8000`)
 
 ## Development Workflow
 
 1. Ensure Ollama is running: `ollama serve`
 2. Ensure at least one model is pulled: `ollama pull llama2`
-3. Run migrations if needed: `npm run db:migrate`
-4. Start dev servers: `npm run dev`
-5. Frontend available at `http://localhost:5173`
-6. API available at `http://localhost:3001/api`
+3. **(Optional) For RAG features**: Start ChromaDB: `docker-compose up -d`
+4. **(Optional) For RAG features**: Pull an embedding model: `ollama pull nomic-embed-text` (or see [EMBEDDING_MODELS.md](EMBEDDING_MODELS.md) for better options)
+5. Run migrations if needed: `npm run db:migrate`
+6. Start dev servers: `npm run dev`
+7. Frontend available at `http://localhost:5173`
+8. API available at `http://localhost:3001/api`
 
 ## Notable Implementation Details
 

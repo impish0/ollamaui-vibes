@@ -33,6 +33,48 @@ router.get('/models/cached', async (_req, res, next) => {
   }
 });
 
+// Get embedding-capable models
+router.get('/models/embeddings', async (_req, res, next) => {
+  try {
+    const allModels = await ollamaService.fetchModels();
+
+    // Common embedding model patterns
+    const embeddingPatterns = [
+      /embed/i,
+      /nomic/i,
+      /bge/i,
+      /mxbai/i,
+      /arctic.*embed/i,
+      /qwen.*embed/i,
+      /e5/i,
+      /gte/i
+    ];
+
+    const embeddingModels = allModels.filter(model =>
+      embeddingPatterns.some(pattern => pattern.test(model.name))
+    );
+
+    // Add recommended models info
+    const recommended = [
+      'qwen3-embedding:8b',
+      'nomic-embed-text',
+      'mxbai-embed-large',
+      'bge-m3',
+      'snowflake-arctic-embed:335m'
+    ];
+
+    res.json({
+      models: embeddingModels,
+      recommended: recommended.filter(r =>
+        embeddingModels.some(m => m.name.includes(r.split(':')[0]))
+      ),
+      allRecommended: recommended // Full list for UI to suggest pulling
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Health check
 router.get('/health', async (_req, res, next) => {
   try {

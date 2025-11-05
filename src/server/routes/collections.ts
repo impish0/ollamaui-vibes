@@ -12,7 +12,7 @@ const router = Router();
 const createCollectionSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
   description: z.string().max(500).optional(),
-  embedding: z.string().max(100).optional()
+  embedding: z.string().max(100).optional().default('nomic-embed-text') // Default embedding model
 });
 
 const updateCollectionSchema = z.object({
@@ -83,11 +83,14 @@ router.post('/', validateBody(createCollectionSchema), async (req, res, next) =>
       throw new ApiError('ChromaDB is not available. Please ensure ChromaDB is running.', 503);
     }
 
+    // Use provided embedding model or default
+    const embeddingModel = embedding || 'nomic-embed-text';
+
     const collection = await prisma.collection.create({
       data: {
         name,
         description,
-        embedding: embedding || 'nomic-embed-text'
+        embedding: embeddingModel
       }
     });
 

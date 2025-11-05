@@ -9,8 +9,8 @@ interface SidebarProps {
   onOpenSettings?: () => void;
   defaultModel?: string;
   defaultSystemPromptId?: string | null;
-  currentView?: 'chat' | 'collections';
-  onViewChange?: (view: 'chat' | 'collections') => void;
+  currentView?: 'chat' | 'collections' | 'logs';
+  onViewChange?: (view: 'chat' | 'collections' | 'logs') => void;
 }
 
 export const Sidebar = ({
@@ -149,16 +149,16 @@ export const Sidebar = ({
         {/* Navigation Tabs */}
         {onViewChange && (
           <div className="px-4 pt-4 pb-2">
-            <div className="flex gap-2 p-1 bg-gray-200 dark:bg-gray-800 rounded-lg">
+            <div className="grid grid-cols-3 gap-1 p-1 bg-gray-200 dark:bg-gray-800 rounded-lg">
               <button
                 onClick={() => onViewChange('chat')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                className={`px-2 py-2 rounded-md text-xs font-medium transition-all ${
                   currentView === 'chat'
                     ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex flex-col items-center gap-1">
                   <svg
                     className="w-4 h-4"
                     fill="none"
@@ -172,18 +172,18 @@ export const Sidebar = ({
                       d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                     />
                   </svg>
-                  Chats
+                  <span>Chats</span>
                 </div>
               </button>
               <button
                 onClick={() => onViewChange('collections')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                className={`px-2 py-2 rounded-md text-xs font-medium transition-all ${
                   currentView === 'collections'
                     ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex flex-col items-center gap-1">
                   <svg
                     className="w-4 h-4"
                     fill="none"
@@ -197,7 +197,32 @@ export const Sidebar = ({
                       d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                     />
                   </svg>
-                  Collections
+                  <span>RAG</span>
+                </div>
+              </button>
+              <button
+                onClick={() => onViewChange('logs')}
+                className={`px-2 py-2 rounded-md text-xs font-medium transition-all ${
+                  currentView === 'logs'
+                    ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <span>Logs</span>
                 </div>
               </button>
             </div>

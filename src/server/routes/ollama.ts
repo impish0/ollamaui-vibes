@@ -3,7 +3,7 @@ import { prisma } from '../db.js';
 import { ollamaService } from '../services/ollamaService.js';
 import { titleGenerator } from '../services/titleGenerator.js';
 import { documentService } from '../services/documentService.js';
-import { chromaService } from '../services/chromaService.js';
+import { vectorService } from '../services/vectorService.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import { streamLimiter } from '../middleware/security.js';
 import { logError, logInfo } from '../utils/logger.js';
@@ -140,7 +140,7 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
 
     // RAG: Retrieve relevant context from collections if specified
     let ragContext = '';
-    if (collectionIds && Array.isArray(collectionIds) && collectionIds.length > 0 && chromaService.isAvailable()) {
+    if (collectionIds && Array.isArray(collectionIds) && collectionIds.length > 0 && vectorService.isAvailable()) {
       try {
         logInfo('RAG search initiated', { collectionIds, query: message.substring(0, 100) });
 

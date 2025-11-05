@@ -3,7 +3,7 @@ import cors from 'cors';
 import { prisma } from './db.js';
 import { ollamaService } from './services/ollamaService.js';
 import { settingsService } from './services/settingsService.js';
-import { chromaService } from './services/chromaService.js';
+import { vectorService } from './services/vectorService.js';
 import { localhostOnly, apiLimiter, sanitizeInput } from './middleware/security.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger, logError, logInfo } from './utils/logger.js';
@@ -80,12 +80,12 @@ async function start() {
       logger.warn(`⚠ Ollama not reachable`, { baseUrl: ollamaService.getBaseUrl() });
     }
 
-    // Initialize ChromaDB service
-    await chromaService.initialize();
-    if (chromaService.isAvailable()) {
-      logInfo('✓ ChromaDB connected - RAG features enabled');
+    // Initialize Vector service
+    await vectorService.initialize();
+    if (vectorService.isAvailable()) {
+      logInfo('✓ Vector service ready - RAG features enabled');
     } else {
-      logger.warn('⚠ ChromaDB not available - RAG features disabled');
+      logger.warn('⚠ Vector service unavailable - RAG features disabled');
     }
 
     // Start listening

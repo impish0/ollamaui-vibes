@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../db.js';
-import { chromaService } from '../services/chromaService.js';
+import { vectorService } from '../services/vectorService.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
 import { z } from 'zod';
@@ -79,7 +79,7 @@ router.post('/', validateBody(createCollectionSchema), async (req, res, next) =>
     const { name, description, embedding }: CreateCollectionRequest = req.body;
 
     // Check if ChromaDB is available
-    if (!chromaService.isAvailable()) {
+    if (!vectorService.isAvailable()) {
       throw new ApiError('ChromaDB is not available. Please ensure ChromaDB is running.', 503);
     }
 
@@ -95,7 +95,7 @@ router.post('/', validateBody(createCollectionSchema), async (req, res, next) =>
     });
 
     // Initialize the collection in ChromaDB
-    await chromaService.getOrCreateCollection(collection.id, collection.embedding);
+    await vectorService.getOrCreateCollection(collection.id, collection.embedding);
 
     res.status(201).json(collection);
   } catch (error) {
@@ -132,9 +132,9 @@ router.delete('/:collectionId', validateParams(collectionIdParamSchema), async (
     const { collectionId } = req.params;
 
     // Delete from ChromaDB if available
-    if (chromaService.isAvailable()) {
+    if (vectorService.isAvailable()) {
       try {
-        await chromaService.deleteCollection(collectionId);
+        await vectorService.deleteCollection(collectionId);
       } catch (error) {
         // Log but don't fail if ChromaDB deletion fails
         console.error('Failed to delete ChromaDB collection:', error);
@@ -182,9 +182,9 @@ router.get('/:collectionId/stats', validateParams(collectionIdParamSchema), asyn
     };
 
     // Get ChromaDB stats if available
-    if (chromaService.isAvailable()) {
+    if (vectorService.isAvailable()) {
       try {
-        const chromaStats = await chromaService.getCollectionStats(collectionId);
+        const chromaStats = await vectorService.getCollectionStats(collectionId);
         res.json({ ...stats, vectorCount: chromaStats.count });
       } catch (error) {
         res.json({ ...stats, vectorCount: null });

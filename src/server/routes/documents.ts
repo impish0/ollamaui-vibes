@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { prisma } from '../db.js';
 import { documentService } from '../services/documentService.js';
-import { chromaService } from '../services/chromaService.js';
+import { vectorService } from '../services/vectorService.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import { validateParams, validateQuery } from '../middleware/validation.js';
 import { z } from 'zod';
@@ -81,7 +81,7 @@ router.post('/upload', upload.single('file'), async (req, res, next) => {
     }
 
     // Check if ChromaDB is available
-    if (!chromaService.isAvailable()) {
+    if (!vectorService.isAvailable()) {
       throw new ApiError('ChromaDB is not available. Please ensure ChromaDB is running.', 503);
     }
 
@@ -155,7 +155,7 @@ router.get('/search', validateQuery(searchQuerySchema), async (req, res, next) =
       topK?: string;
     };
 
-    if (!chromaService.isAvailable()) {
+    if (!vectorService.isAvailable()) {
       throw new ApiError('ChromaDB is not available', 503);
     }
 

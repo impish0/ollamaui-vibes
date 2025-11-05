@@ -2,7 +2,7 @@ import * as pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import { prisma } from '../db.js';
 import { embeddingService } from './embeddingService.js';
-import { chromaService } from './chromaService.js';
+import { vectorService } from './vectorService.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -94,7 +94,7 @@ class DocumentService {
       logger.info('Document record created', { documentId, filename });
 
       // Check if ChromaDB is available
-      if (!chromaService.isAvailable()) {
+      if (!vectorService.isAvailable()) {
         throw new Error('ChromaDB is not available. Please ensure ChromaDB is running.');
       }
 
@@ -107,7 +107,7 @@ class DocumentService {
 
       // Store vectors in ChromaDB
       logger.info('Storing vectors in ChromaDB', { documentId, chunkCount: chunks.length });
-      await chromaService.addDocumentChunks(
+      await vectorService.addDocumentChunks(
         collectionId,
         documentId,
         chunks,
@@ -168,8 +168,8 @@ class DocumentService {
       }
 
       // Delete from ChromaDB if available
-      if (chromaService.isAvailable()) {
-        await chromaService.deleteDocumentChunks(document.collectionId, documentId);
+      if (vectorService.isAvailable()) {
+        await vectorService.deleteDocumentChunks(document.collectionId, documentId);
       }
 
       // Delete from database
@@ -200,7 +200,7 @@ class DocumentService {
   }[]> {
     try {
       // Check if ChromaDB is available
-      if (!chromaService.isAvailable()) {
+      if (!vectorService.isAvailable()) {
         throw new Error('ChromaDB is not available');
       }
 
@@ -217,7 +217,7 @@ class DocumentService {
       const queryEmbedding = await embeddingService.embedQuery(query, collection.embedding);
 
       // Search ChromaDB
-      const { documents, distances, metadatas } = await chromaService.searchSimilar(
+      const { documents, distances, metadatas } = await vectorService.searchSimilar(
         collectionId,
         queryEmbedding,
         topK

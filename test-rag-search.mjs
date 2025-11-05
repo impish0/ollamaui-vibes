@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { embeddingService } from './src/server/services/embeddingService.js';
-import { vectorService } from './src/server/services/vectorService.js';
+import { embeddingService } from './src/server/services/embeddingService.ts';
+import { vectorService } from './src/server/services/vectorService.ts';
 
 const prisma = new PrismaClient();
 

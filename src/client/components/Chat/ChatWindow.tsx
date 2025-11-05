@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMessaging } from '../../hooks/useMessaging';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
@@ -25,6 +25,8 @@ export const ChatWindow = ({ chat }: ChatWindowProps) => {
   const [selectedSystemPromptId, setSelectedSystemPromptId] = useState(
     chat.systemPromptId || undefined
   );
+  const [showCollectionSelector, setShowCollectionSelector] = useState(false);
+  const collectionSelectorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSelectedModel(chat.model);
@@ -46,6 +48,25 @@ export const ChatWindow = ({ chat }: ChatWindowProps) => {
     };
     fetchCollections();
   }, []);
+
+  // Close collection selector when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        collectionSelectorRef.current &&
+        !collectionSelectorRef.current.contains(event.target as Node)
+      ) {
+        setShowCollectionSelector(false);
+      }
+    };
+
+    if (showCollectionSelector) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showCollectionSelector]);
 
   const handleModelChange = async (model: string) => {
     setSelectedModel(model);
@@ -99,13 +120,27 @@ export const ChatWindow = ({ chat }: ChatWindowProps) => {
             />
 
             {/* RAG Toggle */}
-            <div className="relative">
+            <div className="relative" ref={collectionSelectorRef}>
               <button
                 onClick={() => {
-                  setRagEnabled(!ragEnabled);
-                  if (!ragEnabled && collections.length === 0) {
-                    toastUtils.info('No collections available. Create one in the Collections page.');
+                  if (!ragEnabled) {
+                    // Enabling RAG
+                    setRagEnabled(true);
+                    if (collections.length === 0) {
+                      toastUtils.info('No collections available. Create one in the Collections page.');
+                    } else {
+                      setShowCollectionSelector(true);
+                    }
+                  } else {
+                    // If clicking when RAG is enabled, toggle dropdown
+                    setShowCollectionSelector(!showCollectionSelector);
                   }
+                }}
+                onContextMenu={(e) => {
+                  // Right-click to disable RAG
+                  e.preventDefault();
+                  setRagEnabled(false);
+                  setShowCollectionSelector(false);
                 }}
                 disabled={isStreaming}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
@@ -113,7 +148,7 @@ export const ChatWindow = ({ chat }: ChatWindowProps) => {
                     ? 'bg-primary-600 text-white hover:bg-primary-700'
                     : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
                 } ${isStreaming ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={ragEnabled ? 'RAG enabled' : 'RAG disabled'}
+                title={ragEnabled ? 'RAG enabled - Click to select collections, Right-click to disable' : 'RAG disabled - Click to enable'}
               >
                 <span>📚</span>
                 <span>RAG</span>
@@ -125,7 +160,7 @@ export const ChatWindow = ({ chat }: ChatWindowProps) => {
               </button>
 
               {/* Collection Selector Dropdown */}
-              {ragEnabled && (
+              {showCollectionSelector && (
                 <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
                   <div className="p-3">
                     <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">

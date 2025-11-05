@@ -8,7 +8,7 @@ import { logger } from '../utils/logger.js';
  * Document Service - Handles document parsing, processing, and storage
  *
  * Supports:
- * - PDF extraction (pdf-parse)
+ * - PDF extraction (pdf.js-extract)
  * - Word documents (mammoth)
  * - Plain text files
  * - Markdown files
@@ -21,10 +21,21 @@ class DocumentService {
     try {
       // PDF files
       if (contentType === 'application/pdf' || filename.endsWith('.pdf')) {
-        // Use dynamic import for pdf-parse (CommonJS module in ESM context)
-        const pdfParse = (await import('pdf-parse')).default;
-        const data = await pdfParse(buffer);
-        return data.text;
+        // Use pdf.js-extract for reliable PDF text extraction
+        const { PDFExtract } = await import('pdf.js-extract');
+        const pdfExtract = new PDFExtract();
+        const data = await pdfExtract.extractBuffer(buffer);
+
+        // Concatenate text from all pages
+        const text = data.pages
+          .map((page: any) =>
+            page.content
+              .map((item: any) => item.str)
+              .join(' ')
+          )
+          .join('\n\n');
+
+        return text;
       }
 
       // Word documents (.docx)

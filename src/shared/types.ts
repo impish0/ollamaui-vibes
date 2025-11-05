@@ -105,3 +105,58 @@ export interface PaginatedMessagesResponse {
   nextCursor: string | null;
   hasMore: boolean;
 }
+
+// RAG Types
+export interface Collection {
+  id: string;
+  name: string;
+  description: string | null;
+  embedding: string;
+  documents?: Document[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Document {
+  id: string;
+  collectionId: string;
+  collection?: Collection;
+  filename: string;
+  contentType: string;
+  content: string;
+  metadata: string | null;
+  chunkCount: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCollectionRequest {
+  name: string;
+  description?: string;
+  embedding?: string;
+}
+
+export interface UpdateCollectionRequest {
+  name?: string;
+  description?: string;
+}
+
+export interface UploadDocumentRequest {
+  collectionId: string;
+  file: File;
+}
+
+export interface RAGSearchResult {
+  documentId: string;
+  filename: string;
+  content: string;
+  score: number;
+  metadata?: Record<string, any>;
+}
+
+export interface RAGContext {
+  results: RAGSearchResult[];
+  query: string;
+}

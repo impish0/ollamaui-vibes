@@ -31,6 +31,7 @@ export const streamChatSchema = z.object({
   chatId: z.string().cuid('Invalid chat ID'),
   model: z.string().min(1, 'Model is required').max(200),
   message: z.string().min(1, 'Message cannot be empty').max(100000, 'Message too large (max 100KB)'),
+  collectionIds: z.array(z.string().cuid('Invalid collection ID')).optional(),
 });
 
 // System prompt schemas

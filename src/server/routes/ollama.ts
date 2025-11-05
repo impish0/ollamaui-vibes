@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../db.js';
 import { ollamaService } from '../services/ollamaService.js';
 import { titleGenerator } from '../services/titleGenerator.js';
+import { documentService } from '../services/documentService.js';
+import { chromaService } from '../services/chromaService.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import { streamLimiter } from '../middleware/security.js';
 import { logError, logInfo } from '../utils/logger.js';
@@ -64,7 +66,7 @@ router.post('/config', validateBody(updateOllamaConfigSchema), async (req, res, 
 
 // Stream chat completion
 router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async (req: Request, res: Response, next) => {
-  const { chatId, model, message } = req.body;
+  const { chatId, model, message, collectionIds } = req.body;
 
   try {
 
@@ -92,6 +94,43 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
         role: 'system',
         content: chat.systemPrompt.content,
       });
+    }
+
+    // RAG: Retrieve relevant context from collections if specified
+    let ragContext = '';
+    if (collectionIds && Array.isArray(collectionIds) && collectionIds.length > 0 && chromaService.isAvailable()) {
+      try {
+        logInfo('RAG search initiated', { collectionIds, query: message.substring(0, 100) });
+
+        const allResults = [];
+        for (const collectionId of collectionIds) {
+          const results = await documentService.searchDocuments(collectionId, message, 3);
+          allResults.push(...results);
+        }
+
+        // Sort by score and take top 5 overall
+        allResults.sort((a, b) => b.score - a.score);
+        const topResults = allResults.slice(0, 5);
+
+        if (topResults.length > 0) {
+          ragContext = '=== RELEVANT CONTEXT FROM DOCUMENTS ===\n\n';
+          topResults.forEach((result, index) => {
+            ragContext += `[Source ${index + 1}: ${result.filename}]\n${result.content}\n\n`;
+          });
+          ragContext += '=== END OF CONTEXT ===\n\n';
+
+          logInfo('RAG context retrieved', { resultCount: topResults.length });
+
+          // Inject RAG context as a system message
+          messages.push({
+            role: 'system',
+            content: ragContext + 'Use the above context to help answer the user\'s question. If the context is relevant, cite the source. If not relevant, answer from your general knowledge.'
+          });
+        }
+      } catch (ragError) {
+        logError('RAG search failed, continuing without context', ragError);
+        // Continue without RAG context rather than failing the request
+      }
     }
 
     // Add conversation history

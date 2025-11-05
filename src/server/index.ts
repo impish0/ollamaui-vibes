@@ -3,6 +3,7 @@ import cors from 'cors';
 import { prisma } from './db.js';
 import { ollamaService } from './services/ollamaService.js';
 import { settingsService } from './services/settingsService.js';
+import { chromaService } from './services/chromaService.js';
 import { localhostOnly, apiLimiter, sanitizeInput } from './middleware/security.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger, logError, logInfo } from './utils/logger.js';
@@ -11,6 +12,8 @@ import messagesRouter from './routes/messages.js';
 import systemPromptsRouter from './routes/systemPrompts.js';
 import ollamaRouter from './routes/ollama.js';
 import settingsRouter from './routes/settings.js';
+import collectionsRouter from './routes/collections.js';
+import documentsRouter from './routes/documents.js';
 
 const app = express();
 const PORT = parseInt(process.env.SERVER_PORT || '3001', 10);
@@ -38,6 +41,8 @@ app.use('/api/messages', messagesRouter);
 app.use('/api/system-prompts', systemPromptsRouter);
 app.use('/api/ollama', ollamaRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/collections', collectionsRouter);
+app.use('/api/documents', documentsRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -73,6 +78,14 @@ async function start() {
       logInfo(`✓ Ollama connected`, { baseUrl: ollamaService.getBaseUrl() });
     } else {
       logger.warn(`⚠ Ollama not reachable`, { baseUrl: ollamaService.getBaseUrl() });
+    }
+
+    // Initialize ChromaDB service
+    await chromaService.initialize();
+    if (chromaService.isAvailable()) {
+      logInfo('✓ ChromaDB connected - RAG features enabled');
+    } else {
+      logger.warn('⚠ ChromaDB not available - RAG features disabled');
     }
 
     // Start listening

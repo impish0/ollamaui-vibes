@@ -57,3 +57,34 @@ model Settings {
   key   String @unique
   value String
 }
+
+model Collection {
+  id          String     @id @default(cuid())
+  name        String     @unique // Max 100 chars, validated by Zod
+  description String?    // Optional description
+  embedding   String     @default("nomic-embed-text") // Embedding model used
+  documents   Document[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([name])
+  @@index([createdAt])
+}
+
+model Document {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  filename     String     // Original filename
+  contentType  String     // MIME type (e.g., 'text/plain', 'application/pdf')
+  content      String     // Extracted text content
+  metadata     String?    // JSON string for additional metadata
+  chunkCount   Int        @default(0) // Number of chunks created
+  status       String     @default("pending") // 'pending', 'processing', 'completed', 'failed'
+  errorMessage String?    // Error details if status is 'failed'
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([collectionId, createdAt])
+  @@index([status])
+}

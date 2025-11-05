@@ -33,6 +33,9 @@ prisma/*.db
 prisma/*.sqlite
 prisma/*.sqlite-wal
 
+# ChromaDB vector storage (local)
+chroma-data/
+
 # Logs
 logs/
 *.log

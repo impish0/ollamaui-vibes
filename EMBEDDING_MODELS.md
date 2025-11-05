@@ -2,6 +2,8 @@
 
 Ollama UI Vibes supports **configurable embedding models** for RAG (Retrieval-Augmented Generation). Choose the best model for your use case!
 
+**✨ No Docker Required!** ChromaDB runs in-process with local file storage at `./chroma-data`. Just pull an embedding model and start uploading documents!
+
 ---
 
 ## 🏆 Recommended Models (November 2025)

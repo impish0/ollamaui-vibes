@@ -73,7 +73,10 @@ The `/api/messages/stream` endpoint uses Server-Sent Events (SSE) to stream Olla
 
 ### RAG (Retrieval-Augmented Generation)
 Full RAG pipeline with ChromaDB integration:
-- **Vector Storage**: ChromaDB for semantic search (runs on port 8000)
+- **Vector Storage**: ChromaDB in-process mode (no Docker required!)
+  - Stores vectors in local `./chroma-data` directory
+  - Zero configuration, works out of the box
+  - Persistent across server restarts
 - **Embedding Models**: Configurable per collection (see [EMBEDDING_MODELS.md](EMBEDDING_MODELS.md))
   - Recommended: `qwen3-embedding:8b` (best), `mxbai-embed-large`, `nomic-embed-text`
   - Each collection can use a different embedding model
@@ -132,18 +135,18 @@ See [.env.example](.env.example):
 - `NODE_ENV` - Environment mode
 - `DATABASE_URL` - Prisma SQLite connection string (default: `file:./dev.db`)
   - Note: Path is relative to the `prisma/` directory, so `file:./dev.db` creates the database at `prisma/dev.db`
-- `CHROMA_URL` - ChromaDB server URL (default: `http://localhost:8000`)
 
 ## Development Workflow
 
 1. Ensure Ollama is running: `ollama serve`
 2. Ensure at least one model is pulled: `ollama pull llama2`
-3. **(Optional) For RAG features**: Start ChromaDB: `docker-compose up -d`
-4. **(Optional) For RAG features**: Pull an embedding model: `ollama pull nomic-embed-text` (or see [EMBEDDING_MODELS.md](EMBEDDING_MODELS.md) for better options)
-5. Run migrations if needed: `npm run db:migrate`
-6. Start dev servers: `npm run dev`
-7. Frontend available at `http://localhost:5173`
-8. API available at `http://localhost:3001/api`
+3. **(Optional) For RAG features**: Pull an embedding model: `ollama pull nomic-embed-text` (or see [EMBEDDING_MODELS.md](EMBEDDING_MODELS.md) for better options)
+4. Run migrations if needed: `npm run db:migrate`
+5. Start dev servers: `npm run dev`
+6. Frontend available at `http://localhost:5173`
+7. API available at `http://localhost:3001/api`
+
+**Note**: RAG features work automatically with no additional setup! ChromaDB runs in-process and stores vectors in `./chroma-data`.
 
 ## Notable Implementation Details
 

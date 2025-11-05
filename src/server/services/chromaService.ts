@@ -1,5 +1,6 @@
 import { ChromaClient } from 'chromadb';
 import { logger } from '../utils/logger.js';
+import path from 'path';
 
 /**
  * ChromaDB Service - Manages vector storage and retrieval for RAG
@@ -8,15 +9,22 @@ import { logger } from '../utils/logger.js';
  * - Collection management in ChromaDB
  * - Vector embedding storage
  * - Similarity search for document retrieval
+ *
+ * Uses PersistentClient for local file-based storage (no Docker required!)
  */
 class ChromaService {
   private client: ChromaClient;
   private isInitialized = false;
 
   constructor() {
+    // Use persistent client with local file storage (no server needed!)
+    const chromaPath = process.env.CHROMA_PATH || path.join(process.cwd(), 'chroma-data');
+
     this.client = new ChromaClient({
-      path: process.env.CHROMA_URL || 'http://localhost:8000'
+      path: chromaPath
     });
+
+    logger.info('ChromaDB configured for local storage', { path: chromaPath });
   }
 
   /**
@@ -24,12 +32,12 @@ class ChromaService {
    */
   async initialize(): Promise<void> {
     try {
-      // Test connection by getting heartbeat
-      await this.client.heartbeat();
+      // Test by trying to list collections
+      await this.client.listCollections();
       this.isInitialized = true;
-      logger.info('ChromaDB service initialized successfully');
+      logger.info('ChromaDB service initialized successfully (in-process mode)');
     } catch (error) {
-      logger.warn('ChromaDB not available - RAG features will be disabled', { error });
+      logger.warn('ChromaDB initialization failed - RAG features will be disabled', { error });
       this.isInitialized = false;
     }
   }

@@ -146,7 +146,9 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
 
         const allResults = [];
         for (const collectionId of collectionIds) {
+          logInfo('Searching collection', { collectionId });
           const results = await documentService.searchDocuments(collectionId, message, 3);
+          logInfo('Search results for collection', { collectionId, resultCount: results.length });
           allResults.push(...results);
         }
 
@@ -161,12 +163,18 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
           });
           ragContext += '=== END OF CONTEXT ===\n\n';
 
-          logInfo('RAG context retrieved', { resultCount: topResults.length });
+          logInfo('RAG context retrieved', { resultCount: topResults.length, totalCharacters: ragContext.length });
 
           // Inject RAG context as a system message
           messages.push({
             role: 'system',
             content: ragContext + 'Use the above context to help answer the user\'s question. If the context is relevant, cite the source. If not relevant, answer from your general knowledge.'
+          });
+        } else {
+          logInfo('RAG search completed but no results found', {
+            collectionIds,
+            collectionsSearched: collectionIds.length,
+            message: 'Vector indexes may be empty or query returned no matches'
           });
         }
       } catch (ragError) {

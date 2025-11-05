@@ -117,12 +117,21 @@ router.get('/stats/summary', async (req, res, next) => {
       `,
     ]);
 
+    // Convert BigInt values to numbers for JSON serialization
+    const serializedModelStats = (modelStats as any[]).map((stat) => ({
+      model: stat.model,
+      count: Number(stat.count),
+      avgInputTokens: Number(stat.avgInputTokens) || 0,
+      avgOutputTokens: Number(stat.avgOutputTokens) || 0,
+      avgResponseTime: Number(stat.avgResponseTime) || 0,
+    }));
+
     res.json({
       totalLogs,
       totalInputTokens: totalTokens._sum.estimatedTokens || 0,
       totalOutputTokens: totalTokens._sum.responseTokens || 0,
       avgResponseTime: avgResponseTime._avg.responseTime || 0,
-      modelStats,
+      modelStats: serializedModelStats,
     });
   } catch (error) {
     next(error);

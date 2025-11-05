@@ -56,18 +56,35 @@ class VectorService {
           const collectionId = file.replace('.dat', '');
           const metadataPath = path.join(this.vectorDataPath, `${collectionId}.meta.json`);
 
-          if (fs.existsSync(metadataPath)) {
-            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
-            const index = new HierarchicalNSW('cosine', metadata.dimension);
-            await index.readIndex(path.join(this.vectorDataPath, file), metadata.maxElements);
-            this.indexes.set(collectionId, index);
-            this.indexMetadata.set(collectionId, metadata);
-            logger.info('Loaded existing index', { collectionId, dimension: metadata.dimension });
+          try {
+            if (fs.existsSync(metadataPath)) {
+              const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
+              const index = new HierarchicalNSW('cosine', metadata.dimension);
+              await index.readIndex(path.join(this.vectorDataPath, file), metadata.maxElements);
+              this.indexes.set(collectionId, index);
+              this.indexMetadata.set(collectionId, metadata);
+              logger.info('Loaded existing index', { collectionId, dimension: metadata.dimension });
+            } else {
+              logger.warn('Index file exists but metadata file is missing', {
+                collectionId,
+                indexPath: path.join(this.vectorDataPath, file),
+                metadataPath
+              });
+            }
+          } catch (indexError) {
+            logger.error('Failed to load specific index', {
+              collectionId,
+              file,
+              error: indexError instanceof Error ? indexError.message : String(indexError)
+            });
           }
         }
       }
     } catch (error) {
-      logger.warn('Failed to load some indexes', { error });
+      logger.warn('Failed to read vector data directory', {
+        path: this.vectorDataPath,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 

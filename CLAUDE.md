@@ -72,9 +72,9 @@ All routes in [src/server/routes/](src/server/routes/):
 The `/api/messages/stream` endpoint uses Server-Sent Events (SSE) to stream Ollama responses in real-time.
 
 ### RAG (Retrieval-Augmented Generation)
-Full RAG pipeline with ChromaDB integration:
-- **Vector Storage**: ChromaDB in-process mode (no Docker required!)
-  - Stores vectors in local `./chroma-data` directory
+Full RAG pipeline with pure JavaScript vector search:
+- **Vector Storage**: hnswlib-node (HNSW algorithm, no server required!)
+  - Stores vectors in local `./vector-data` directory
   - Zero configuration, works out of the box
   - Persistent across server restarts
 - **Embedding Models**: Configurable per collection (see [EMBEDDING_MODELS.md](EMBEDDING_MODELS.md))
@@ -85,7 +85,7 @@ Full RAG pipeline with ChromaDB integration:
 - **Text Chunking**: Smart 512-char chunks with 50-char overlap
 - **Context Injection**: Automatically retrieves top-5 relevant chunks and injects into chat
 - **Services**:
-  - [chromaService.ts](src/server/services/chromaService.ts) - Vector operations
+  - [vectorService.ts](src/server/services/vectorService.ts) - HNSW vector operations
   - [embeddingService.ts](src/server/services/embeddingService.ts) - Text chunking & embeddings
   - [documentService.ts](src/server/services/documentService.ts) - File parsing & orchestration
 
@@ -146,7 +146,7 @@ See [.env.example](.env.example):
 6. Frontend available at `http://localhost:5173`
 7. API available at `http://localhost:3001/api`
 
-**Note**: RAG features work automatically with no additional setup! ChromaDB runs in-process and stores vectors in `./chroma-data`.
+**Note**: RAG features work automatically with no additional setup! Vector service runs in-process and stores indexes in `./vector-data`.
 
 ## Notable Implementation Details
 

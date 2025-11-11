@@ -185,6 +185,146 @@ export class OllamaService {
       return false;
     }
   }
+
+  // Model Management Methods
+  async pullModel(modelName: string, onProgress?: (progress: any) => void): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/pull`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: modelName }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to pull model: ${response.statusText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          try {
+            const progress = JSON.parse(line);
+            if (onProgress) {
+              onProgress(progress);
+            }
+          } catch (e) {
+            console.warn('Failed to parse progress:', line);
+          }
+        }
+      }
+
+      // Refresh models cache after pull
+      await this.fetchModels();
+    } catch (error) {
+      console.error('Error pulling model:', error);
+      throw error;
+    }
+  }
+
+  async deleteModel(modelName: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: modelName }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete model: ${response.statusText}`);
+      }
+
+      // Refresh models cache after delete
+      await this.fetchModels();
+    } catch (error) {
+      console.error('Error deleting model:', error);
+      throw error;
+    }
+  }
+
+  async getModelInfo(modelName: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/show`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: modelName }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get model info: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting model info:', error);
+      throw error;
+    }
+  }
+
+  async createModel(name: string, modelfile: string, onProgress?: (progress: any) => void): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, modelfile }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create model: ${response.statusText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          try {
+            const progress = JSON.parse(line);
+            if (onProgress) {
+              onProgress(progress);
+            }
+          } catch (e) {
+            console.warn('Failed to parse progress:', line);
+          }
+        }
+      }
+
+      // Refresh models cache after create
+      await this.fetchModels();
+    } catch (error) {
+      console.error('Error creating model:', error);
+      throw error;
+    }
+  }
 }
 
 // Singleton instance

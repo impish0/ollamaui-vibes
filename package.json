@@ -24,6 +24,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "hnswlib-node": "^3.0.0",
+    "lucide-react": "^0.553.0",
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
     "pdf.js-extract": "^0.2.1",

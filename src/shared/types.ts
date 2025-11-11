@@ -43,6 +43,25 @@ export interface OllamaModelsResponse {
   models: OllamaModel[];
 }
 
+export interface ModelParameters {
+  temperature?: number; // 0.0 - 2.0, default 0.7
+  top_p?: number; // 0.0 - 1.0, default 0.9
+  top_k?: number; // 1 - 100, default 40
+  repeat_penalty?: number; // 0.0 - 2.0, default 1.1
+  seed?: number; // For reproducibility
+  num_ctx?: number; // Context window size (e.g., 4096, 8192, 32768)
+  num_predict?: number; // Max tokens to generate
+  stop?: string[]; // Stop sequences
+}
+
+export interface ModelParameterPreset {
+  id: string;
+  name: string;
+  description?: string;
+  parameters: ModelParameters;
+  createdAt: string;
+}
+
 export interface ChatCompletionRequest {
   model: string;
   messages: Array<{
@@ -50,12 +69,7 @@ export interface ChatCompletionRequest {
     content: string;
   }>;
   stream: boolean;
-  options?: {
-    num_ctx?: number; // Context window size (e.g., 4096, 8192, 32768)
-    temperature?: number;
-    top_p?: number;
-    top_k?: number;
-  };
+  options?: ModelParameters;
 }
 
 export interface StreamChunk {
@@ -159,4 +173,112 @@ export interface RAGSearchResult {
 export interface RAGContext {
   results: RAGSearchResult[];
   query: string;
+}
+
+// Model Management Types
+export interface ModelInfo {
+  name: string;
+  size: number;
+  digest: string;
+  modified_at: string;
+  details?: {
+    format?: string;
+    family?: string;
+    parameter_size?: string;
+    quantization_level?: string;
+    families?: string[];
+  };
+  template?: string;
+  license?: string;
+}
+
+export interface ModelPullProgress {
+  status: string;
+  digest?: string;
+  total?: number;
+  completed?: number;
+}
+
+export interface PullModelRequest {
+  name: string;
+}
+
+export interface CreateModelRequest {
+  name: string;
+  modelfile: string;
+}
+
+export interface ModelShowResponse {
+  license: string;
+  modelfile: string;
+  parameters: string;
+  template: string;
+  details: {
+    format: string;
+    family: string;
+    families: string[];
+    parameter_size: string;
+    quantization_level: string;
+  };
+}
+
+// Playground Types
+export interface PlaygroundComparison {
+  id: string;
+  prompt: string;
+  models: string[];
+  parameters: Record<string, ModelParameters>; // model name -> parameters
+  responses: Record<string, string>; // model name -> response
+  timestamps: Record<string, number>; // model name -> duration in ms
+  createdAt: string;
+}
+
+export interface PlaygroundCompareRequest {
+  prompt: string;
+  models: Array<{
+    name: string;
+    parameters?: ModelParameters;
+  }>;
+  systemPrompt?: string;
+}
+
+// Benchmark Types
+export interface BenchmarkResult {
+  id: string;
+  modelName: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTime: number; // milliseconds
+  tokensPerSecond: number;
+  timeToFirstToken: number; // milliseconds
+  memoryUsed?: number; // MB
+  parameters: ModelParameters;
+  createdAt: string;
+}
+
+export interface BenchmarkRequest {
+  models: string[];
+  prompts: string[];
+  parameters?: ModelParameters;
+  iterations?: number;
+}
+
+// System Resource Types
+export interface SystemResources {
+  cpu: {
+    usage: number; // percentage
+    cores: number;
+  };
+  memory: {
+    used: number; // MB
+    total: number; // MB
+    percentage: number;
+  };
+  gpu?: {
+    usage: number; // percentage
+    memory: {
+      used: number; // MB
+      total: number; // MB
+    };
+  };
 }

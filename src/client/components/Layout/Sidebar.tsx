@@ -9,8 +9,8 @@ interface SidebarProps {
   onOpenSettings?: () => void;
   defaultModel?: string;
   defaultSystemPromptId?: string | null;
-  currentView?: 'chat' | 'collections' | 'logs';
-  onViewChange?: (view: 'chat' | 'collections' | 'logs') => void;
+  currentView?: 'chat' | 'collections' | 'logs' | 'models' | 'playground';
+  onViewChange?: (view: 'chat' | 'collections' | 'logs' | 'models' | 'playground') => void;
 }
 
 export const Sidebar = ({
@@ -176,6 +176,31 @@ export const Sidebar = ({
                 </div>
               </button>
               <button
+                onClick={() => onViewChange('playground')}
+                className={`px-2 py-2 rounded-md text-xs font-medium transition-all ${
+                  currentView === 'playground'
+                    ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"
+                    />
+                  </svg>
+                  <span>Play</span>
+                </div>
+              </button>
+              <button
                 onClick={() => onViewChange('collections')}
                 className={`px-2 py-2 rounded-md text-xs font-medium transition-all ${
                   currentView === 'collections'
@@ -198,6 +223,31 @@ export const Sidebar = ({
                     />
                   </svg>
                   <span>RAG</span>
+                </div>
+              </button>
+              <button
+                onClick={() => onViewChange('models')}
+                className={`px-2 py-2 rounded-md text-xs font-medium transition-all ${
+                  currentView === 'models'
+                    ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+                    />
+                  </svg>
+                  <span>Models</span>
                 </div>
               </button>
               <button

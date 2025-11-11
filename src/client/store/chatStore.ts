@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Chat, Message, SystemPrompt, OllamaModel, Collection } from '../../shared/types';
+import type { Chat, Message, SystemPrompt, OllamaModel, Collection, ModelParameters } from '../../shared/types';
 
 interface ChatStore {
   // State
@@ -20,6 +20,10 @@ interface ChatStore {
   selectedCollectionIds: string[];
   ragEnabled: boolean;
   embeddingModels: OllamaModel[];
+
+  // Model Parameters State
+  currentParameters: ModelParameters;
+  savedParameterPresets: Record<string, ModelParameters>;
 
   // Actions
   setChats: (chats: Chat[]) => void;
@@ -56,6 +60,12 @@ interface ChatStore {
   toggleCollectionSelection: (collectionId: string) => void;
   setRagEnabled: (enabled: boolean) => void;
   setEmbeddingModels: (models: OllamaModel[]) => void;
+
+  // Model Parameters Actions
+  setCurrentParameters: (parameters: ModelParameters) => void;
+  updateCurrentParameters: (updates: Partial<ModelParameters>) => void;
+  saveParameterPreset: (name: string, parameters: ModelParameters) => void;
+  deleteParameterPreset: (name: string) => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -77,6 +87,15 @@ export const useChatStore = create<ChatStore>((set) => ({
   selectedCollectionIds: [],
   ragEnabled: false,
   embeddingModels: [],
+
+  // Model Parameters Initial State
+  currentParameters: {
+    temperature: 0.7,
+    top_p: 0.9,
+    top_k: 40,
+    repeat_penalty: 1.1,
+  },
+  savedParameterPresets: {},
 
   // Actions
   setChats: (chats) => set({ chats }),
@@ -197,4 +216,23 @@ export const useChatStore = create<ChatStore>((set) => ({
   setRagEnabled: (enabled) => set({ ragEnabled: enabled }),
 
   setEmbeddingModels: (models) => set({ embeddingModels: models }),
+
+  // Model Parameters Actions
+  setCurrentParameters: (parameters) => set({ currentParameters: parameters }),
+
+  updateCurrentParameters: (updates) => set((state) => ({
+    currentParameters: { ...state.currentParameters, ...updates },
+  })),
+
+  saveParameterPreset: (name, parameters) => set((state) => ({
+    savedParameterPresets: {
+      ...state.savedParameterPresets,
+      [name]: parameters,
+    },
+  })),
+
+  deleteParameterPreset: (name) => set((state) => {
+    const { [name]: _, ...rest } = state.savedParameterPresets;
+    return { savedParameterPresets: rest };
+  }),
 }));

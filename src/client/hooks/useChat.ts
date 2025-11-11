@@ -121,12 +121,19 @@ export const useChat = () => {
   };
 
   let abortController: AbortController | null = null;
+  let timeoutId: NodeJS.Timeout | null = null;
 
   const sendMessage = async (chatId: string, message: string, model: string) => {
     try {
       setIsStreaming(true);
       resetStreamingContent();
       abortController = new AbortController();
+
+      // Set a 60-second timeout for the stream
+      timeoutId = setTimeout(() => {
+        console.warn('Stream timeout after 60 seconds');
+        abortController?.abort();
+      }, 60000);
 
       // Add user message to UI
       const userMessage = {
@@ -145,6 +152,11 @@ export const useChat = () => {
           appendStreamingContent(chunk.content);
         }
         if (chunk.done && chunk.messageId) {
+          // Clear timeout on successful completion
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+          }
           // Streaming complete, reload chat to get all messages with proper IDs
           const updatedChat = await chatsApi.getById(chatId);
           updateChat(chatId, updatedChat);
@@ -154,6 +166,10 @@ export const useChat = () => {
         }
         if (chunk.error) {
           console.error('Stream error:', chunk.error);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+          }
           setIsStreaming(false);
           resetStreamingContent();
           throw new Error(chunk.error);
@@ -161,16 +177,35 @@ export const useChat = () => {
       }
     } catch (error) {
       console.error('Failed to send message:', error);
+      // Clear timeout on error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       setIsStreaming(false);
       resetStreamingContent();
+
+      // Check if this was a timeout/abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timed out or was cancelled');
+      }
       throw error;
     }
   };
 
   const stopStreaming = () => {
     try {
+      // Clear timeout when manually stopping
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       abortController?.abort();
-    } catch {}
+      setIsStreaming(false);
+      resetStreamingContent();
+    } catch (error) {
+      console.error('Error stopping stream:', error);
+    }
   };
 
   const currentChat = chats.find((chat) => chat.id === currentChatId);

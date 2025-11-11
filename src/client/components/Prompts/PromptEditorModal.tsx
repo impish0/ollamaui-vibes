@@ -26,17 +26,60 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
   const [isFavorite, setIsFavorite] = useState(prompt?.isFavorite || false);
   const [changeDescription, setChangeDescription] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const { data: collections = [] } = usePromptCollections();
   const createMutation = useCreatePrompt();
   const updateMutation = useUpdatePrompt();
 
+  // Character limits
+  const NAME_LIMIT = 200;
+  const DESCRIPTION_LIMIT = 500;
+  const CONTENT_LIMIT = 50000;
+
   // Extract variables from content
   const extractedVariables = extractVariables(content);
 
+  // Validation helpers
+  const getFieldStatus = (length: number, limit: number) => {
+    const percentage = (length / limit) * 100;
+    if (percentage >= 100) return 'error';
+    if (percentage >= 80) return 'warning';
+    return 'normal';
+  };
+
+  const nameStatus = getFieldStatus(name.length, NAME_LIMIT);
+  const descriptionStatus = getFieldStatus(description.length, DESCRIPTION_LIMIT);
+  const contentStatus = getFieldStatus(content.length, CONTENT_LIMIT);
+
   const handleSave = async () => {
-    if (!name.trim() || !content.trim()) {
-      return; // Basic validation
+    // Clear previous errors
+    setValidationErrors([]);
+    const errors: string[] = [];
+
+    // Validate name
+    if (!name.trim()) {
+      errors.push('Prompt name is required');
+    } else if (name.length > NAME_LIMIT) {
+      errors.push(`Name must be ${NAME_LIMIT} characters or less (currently ${name.length})`);
+    }
+
+    // Validate content
+    if (!content.trim()) {
+      errors.push('Prompt content is required');
+    } else if (content.length > CONTENT_LIMIT) {
+      errors.push(`Content must be ${CONTENT_LIMIT} characters or less (currently ${content.length})`);
+    }
+
+    // Validate description
+    if (description && description.length > DESCRIPTION_LIMIT) {
+      errors.push(`Description must be ${DESCRIPTION_LIMIT} characters or less (currently ${description.length})`);
+    }
+
+    // Show errors if any
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
     }
 
     try {
@@ -123,18 +166,52 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <h4 className="text-sm font-medium text-red-900 dark:text-red-300 mb-2">
+                Please fix the following errors:
+              </h4>
+              <ul className="list-disc list-inside space-y-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index} className="text-sm text-red-800 dark:text-red-400">
+                    {error}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Name & Favorite */}
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Prompt Name *
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Prompt Name *
+                </label>
+                <span className={`text-xs ${
+                  nameStatus === 'error'
+                    ? 'text-red-600 dark:text-red-400 font-medium'
+                    : nameStatus === 'warning'
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}>
+                  {name.length}/{NAME_LIMIT}
+                </span>
+              </div>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Code Review Assistant"
-                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                maxLength={NAME_LIMIT}
+                className={`w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg focus:outline-none focus:ring-2 dark:text-white ${
+                  nameStatus === 'error'
+                    ? 'border-red-500 focus:ring-red-500'
+                    : nameStatus === 'warning'
+                    ? 'border-yellow-500 focus:ring-yellow-500'
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                }`}
               />
             </div>
             <div className="flex items-end">
@@ -154,15 +231,33 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </label>
+              <span className={`text-xs ${
+                descriptionStatus === 'error'
+                  ? 'text-red-600 dark:text-red-400 font-medium'
+                  : descriptionStatus === 'warning'
+                  ? 'text-yellow-600 dark:text-yellow-400'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}>
+                {description.length}/{DESCRIPTION_LIMIT}
+              </span>
+            </div>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of what this prompt does"
-              className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              maxLength={DESCRIPTION_LIMIT}
+              className={`w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg focus:outline-none focus:ring-2 dark:text-white ${
+                descriptionStatus === 'error'
+                  ? 'border-red-500 focus:ring-red-500'
+                  : descriptionStatus === 'warning'
+                  ? 'border-yellow-500 focus:ring-yellow-500'
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+              }`}
             />
           </div>
 
@@ -228,15 +323,33 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
 
           {/* Prompt Content */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Prompt Content *
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Prompt Content *
+              </label>
+              <span className={`text-xs ${
+                contentStatus === 'error'
+                  ? 'text-red-600 dark:text-red-400 font-medium'
+                  : contentStatus === 'warning'
+                  ? 'text-yellow-600 dark:text-yellow-400'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}>
+                {content.length.toLocaleString()}/{CONTENT_LIMIT.toLocaleString()}
+              </span>
+            </div>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your prompt here... Use {{variable_name}} for variables"
               rows={12}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white font-mono text-sm resize-none"
+              maxLength={CONTENT_LIMIT}
+              className={`w-full px-4 py-3 bg-white dark:bg-gray-700 border rounded-lg focus:outline-none focus:ring-2 dark:text-white font-mono text-sm resize-none ${
+                contentStatus === 'error'
+                  ? 'border-red-500 focus:ring-red-500'
+                  : contentStatus === 'warning'
+                  ? 'border-yellow-500 focus:ring-yellow-500'
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+              }`}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               Use <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">{'{{variable}}'}</code> syntax to create variables
@@ -283,20 +396,32 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
         {/* Footer */}
         <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            {content.length > 0 && (
-              <span>{content.length} characters</span>
+            {(createMutation.isPending || updateMutation.isPending) && (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                Saving...
+              </span>
             )}
           </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              disabled={!name.trim() || !content.trim() || createMutation.isPending || updateMutation.isPending}
+              disabled={
+                !name.trim() ||
+                !content.trim() ||
+                name.length > NAME_LIMIT ||
+                description.length > DESCRIPTION_LIMIT ||
+                content.length > CONTENT_LIMIT ||
+                createMutation.isPending ||
+                updateMutation.isPending
+              }
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />

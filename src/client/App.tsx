@@ -14,6 +14,7 @@ import { ModelsView } from './pages/ModelsView';
 import { PlaygroundView } from './pages/PlaygroundView';
 import { PromptsView } from './pages/PromptsView';
 import { toastUtils } from './utils/toast';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Lazy load ChatWindow (loaded when user opens a chat)
 const ChatWindow = lazy(() =>
@@ -147,19 +148,31 @@ function App() {
           />
           <main className="flex-1 flex flex-col overflow-hidden">
             {currentView === 'logs' ? (
-              <LogsPage />
+              <ErrorBoundary>
+                <LogsPage />
+              </ErrorBoundary>
             ) : currentView === 'collections' ? (
-              <CollectionsPage />
+              <ErrorBoundary>
+                <CollectionsPage />
+              </ErrorBoundary>
             ) : currentView === 'models' ? (
-              <ModelsView />
+              <ErrorBoundary>
+                <ModelsView />
+              </ErrorBoundary>
             ) : currentView === 'playground' ? (
-              <PlaygroundView />
+              <ErrorBoundary>
+                <PlaygroundView />
+              </ErrorBoundary>
             ) : currentView === 'prompts' ? (
-              <PromptsView />
+              <ErrorBoundary>
+                <PromptsView />
+              </ErrorBoundary>
             ) : currentChat ? (
-              <Suspense fallback={<ChatWindowLoading />}>
-                <ChatWindow chat={currentChat} />
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<ChatWindowLoading />}>
+                  <ChatWindow chat={currentChat} />
+                </Suspense>
+              </ErrorBoundary>
             ) : (
               <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 <div className="text-center space-y-4 p-8">

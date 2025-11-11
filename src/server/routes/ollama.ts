@@ -75,13 +75,36 @@ router.get('/models/embeddings', async (_req, res, next) => {
   }
 });
 
-// Health check
-router.get('/health', async (_req, res, next) => {
+// Health check - Enhanced with error details
+router.get('/health', async (_req, res, _next) => {
   try {
     const healthy = await ollamaService.healthCheck();
-    res.json({ healthy, baseUrl: ollamaService.getBaseUrl() });
+    const baseUrl = ollamaService.getBaseUrl();
+
+    if (healthy) {
+      res.json({
+        healthy: true,
+        baseUrl,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      // Ollama is not responding but we can still return success status code
+      // The client will check the 'healthy' field
+      res.status(200).json({
+        healthy: false,
+        baseUrl,
+        error: 'Ollama server is not responding',
+        timestamp: new Date().toISOString(),
+      });
+    }
   } catch (error) {
-    next(error);
+    // Network error or other issue
+    res.status(200).json({
+      healthy: false,
+      baseUrl: ollamaService.getBaseUrl(),
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
   }
 });
 

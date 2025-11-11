@@ -222,7 +222,9 @@ export const ChatWindow = ({ chat }: ChatWindowProps) => {
       {/* Input */}
       <MessageInput
         onSend={handleSendMessage}
+        onCancel={stopStreaming}
         disabled={isStreaming}
+        isStreaming={isStreaming}
         placeholder={
           isStreaming
             ? 'Waiting for response...'

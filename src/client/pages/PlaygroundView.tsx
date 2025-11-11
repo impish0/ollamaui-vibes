@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { useCachedModels } from '../hooks/useModelsQuery';
 import { useSystemPrompts } from '../hooks/useSystemPromptsQuery';
@@ -29,7 +29,7 @@ interface ModelSlot {
 }
 
 export function PlaygroundView() {
-  const { currentParameters } = useChatStore();
+  const { currentParameters, collections } = useChatStore();
   const { data: modelsData } = useCachedModels();
   const { data: systemPrompts = [] } = useSystemPrompts();
   const models = modelsData?.models || [];
@@ -40,7 +40,11 @@ export function PlaygroundView() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [showAnalyzer, setShowAnalyzer] = useState(false);
+  const [ragEnabled, setRagEnabled] = useState(false);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
+  const [showCollectionSelector, setShowCollectionSelector] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const collectionSelectorRef = useRef<HTMLDivElement>(null);
 
   // Initialize with 2 model slots
   const [modelSlots, setModelSlots] = useState<ModelSlot[]>([
@@ -92,6 +96,41 @@ export function PlaygroundView() {
     );
   };
 
+  // Fetch collections on mount
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const response = await fetch('/api/collections');
+        if (response.ok) {
+          const data = await response.json();
+          useChatStore.getState().setCollections(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch collections:', error);
+      }
+    };
+    fetchCollections();
+  }, []);
+
+  // Close collection selector when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        collectionSelectorRef.current &&
+        !collectionSelectorRef.current.contains(event.target as Node)
+      ) {
+        setShowCollectionSelector(false);
+      }
+    };
+
+    if (showCollectionSelector) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showCollectionSelector]);
+
   // Handle system prompt selection
   const handleSystemPromptChange = (promptId: string) => {
     setSelectedSystemPromptId(promptId);
@@ -103,6 +142,15 @@ export function PlaygroundView() {
     } else {
       setSystemPrompt('');
     }
+  };
+
+  // Toggle collection selection (local to Playground)
+  const toggleCollectionSelection = (collectionId: string) => {
+    setSelectedCollectionIds((prev) =>
+      prev.includes(collectionId)
+        ? prev.filter((id) => id !== collectionId)
+        : [...prev, collectionId]
+    );
   };
 
   const runComparison = async () => {
@@ -135,6 +183,7 @@ export function PlaygroundView() {
       const payload = {
         prompt,
         systemPrompt: showSystemPrompt ? systemPrompt : undefined,
+        collectionIds: ragEnabled && selectedCollectionIds.length > 0 ? selectedCollectionIds : undefined,
         models: activeModels.map((slot) => ({
           name: slot.modelName!,
           parameters: slot.parameters,
@@ -294,6 +343,87 @@ export function PlaygroundView() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* RAG Toggle */}
+            <div className="relative" ref={collectionSelectorRef}>
+              <button
+                onClick={() => {
+                  if (!ragEnabled) {
+                    // Enabling RAG
+                    setRagEnabled(true);
+                    if (collections.length === 0) {
+                      toastUtils.info('No collections available. Create one in the Collections page.');
+                    } else {
+                      setShowCollectionSelector(true);
+                    }
+                  } else {
+                    // If clicking when RAG is enabled, toggle dropdown
+                    setShowCollectionSelector(!showCollectionSelector);
+                  }
+                }}
+                onContextMenu={(e) => {
+                  // Right-click to disable RAG
+                  e.preventDefault();
+                  setRagEnabled(false);
+                  setShowCollectionSelector(false);
+                }}
+                disabled={isRunning}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                  ragEnabled
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={ragEnabled ? 'RAG enabled - Click to select collections, Right-click to disable' : 'RAG disabled - Click to enable'}
+              >
+                <span>📚</span>
+                <span>RAG</span>
+                {ragEnabled && selectedCollectionIds.length > 0 && (
+                  <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">
+                    {selectedCollectionIds.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Collection Selector Dropdown */}
+              {showCollectionSelector && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                  <div className="p-3">
+                    <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Select Collections
+                    </div>
+                    {collections.length === 0 ? (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 py-2">
+                        No collections available
+                      </div>
+                    ) : (
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {collections.map((collection) => (
+                          <label
+                            key={collection.id}
+                            className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCollectionIds.includes(collection.id)}
+                              onChange={() => toggleCollectionSelection(collection.id)}
+                              className="rounded border-gray-300 dark:border-gray-600"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {collection.name}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {collection.documents?.filter((d) => d.status === 'completed').length || 0} docs
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => setShowAnalyzer(!showAnalyzer)}
               disabled={modelSlots.filter((s) => s.response).length < 2}

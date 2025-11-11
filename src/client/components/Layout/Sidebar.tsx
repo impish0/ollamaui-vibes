@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Search } from 'lucide-react';
 import { useChatStore } from '../../store/chatStore';
 import { useChats, useCreateChat, useDeleteChat } from '../../hooks/useChatsQuery';
 import { SystemPromptModal } from '../SystemPrompts/SystemPromptModal';
@@ -25,6 +26,7 @@ export const Sidebar = ({
   const createChatMutation = useCreateChat();
   const deleteChatMutation = useDeleteChat();
   const [showSystemPrompts, setShowSystemPrompts] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleNewChat = async () => {
     if (!defaultModel) {
@@ -337,6 +339,22 @@ export const Sidebar = ({
           </div>
         )}
 
+        {/* Search - Show only in chat view */}
+        {currentView === 'chat' && chats.length > 0 && (
+          <div className="px-4 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search chats..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Chat List - Show only in chat view */}
         {currentView === 'chat' && (
           <div className="flex-1 overflow-y-auto scrollbar-thin px-2">
@@ -353,8 +371,27 @@ export const Sidebar = ({
                   Click "New Chat" above to start a conversation
                 </p>
               </div>
-            ) : (
-              chats.map((chat, index) => (
+            ) : (() => {
+              // Filter chats by search query
+              const filteredChats = searchQuery
+                ? chats.filter((c) =>
+                    c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    c.model.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                : chats;
+
+              return filteredChats.length === 0 ? (
+                <div className="p-6 text-center space-y-3">
+                  <Search className="w-10 h-10 mx-auto text-gray-400" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                    No chats found
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Try a different search term
+                  </p>
+                </div>
+              ) : (
+                filteredChats.map((chat, index) => (
                 <div
                   key={chat.id}
                   className={`w-full p-3 rounded-lg transition-all group relative cursor-pointer animate-fade-in-up ${
@@ -405,8 +442,9 @@ export const Sidebar = ({
                     </div>
                   </div>
                 </div>
-              ))
-            )}
+                ))
+              );
+            })()}
           </div>
           </div>
         )}

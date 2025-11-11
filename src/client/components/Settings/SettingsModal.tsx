@@ -4,13 +4,14 @@ import { useModels } from '../../hooks/useModelsQuery';
 import { useSystemPrompts } from '../../hooks/useSystemPromptsQuery';
 import type { AppSettings } from '../../../shared/settings';
 import { Skeleton } from '../UI/Skeleton';
+import { ProviderSettings } from './ProviderSettings';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type SettingsTab = 'titleGeneration' | 'model' | 'ui' | 'general' | 'advanced';
+type SettingsTab = 'titleGeneration' | 'model' | 'ui' | 'general' | 'advanced' | 'providers';
 
 export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('titleGeneration');
@@ -37,8 +38,9 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
   };
 
   const handleReset = async () => {
+    if (activeTab === 'providers') return; // Providers has its own management
     if (confirm(`Reset ${activeTab} settings to defaults?`)) {
-      await resetCategory.mutateAsync(activeTab);
+      await resetCategory.mutateAsync(activeTab as keyof AppSettings);
       if (settings) {
         setFormData(settings);
       }
@@ -62,6 +64,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
   const tabs: { id: SettingsTab; label: string; icon: string }[] = [
     { id: 'titleGeneration', label: 'Title Generation', icon: '✏️' },
     { id: 'model', label: 'Model Defaults', icon: '🤖' },
+    { id: 'providers', label: 'API Providers', icon: '🔌' },
     { id: 'ui', label: 'UI Preferences', icon: '🎨' },
     { id: 'general', label: 'General', icon: '⚙️' },
     { id: 'advanced', label: 'Advanced', icon: '🔧' },
@@ -154,32 +157,38 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                   />
                 )}
 
-                {/* Actions */}
-                <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                  >
-                    Reset to Defaults
-                  </button>
-                  <div className="flex gap-3">
+                {activeTab === 'providers' && (
+                  <ProviderSettings />
+                )}
+
+                {/* Actions - Hide for providers tab (has its own save) */}
+                {activeTab !== 'providers' && (
+                  <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                     <button
                       type="button"
-                      onClick={onClose}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      onClick={handleReset}
+                      className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                     >
-                      Cancel
+                      Reset to Defaults
                     </button>
-                    <button
-                      type="submit"
-                      disabled={updateSettings.isPending}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition-colors"
-                    >
-                      {updateSettings.isPending ? 'Saving...' : 'Save Changes'}
-                    </button>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={updateSettings.isPending}
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition-colors"
+                      >
+                        {updateSettings.isPending ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </form>
             )}
           </div>

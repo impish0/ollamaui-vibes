@@ -30,7 +30,8 @@ export interface OllamaModel {
   name: string;
   modified_at: string;
   size: number;
-  digest: string;
+  digest?: string;
+  provider?: string; // 'ollama', 'openai', 'anthropic', 'groq', 'google'
   details?: {
     format?: string;
     family?: string;

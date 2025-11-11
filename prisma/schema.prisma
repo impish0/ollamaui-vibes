@@ -167,6 +167,7 @@ model Provider {
   name        String   @unique // 'openai', 'anthropic', 'groq', 'google'
   apiKey      String   // Encrypted API key
   enabled     Boolean  @default(true)
+  models      String?  // JSON array of available models
   lastTested  DateTime?
   testStatus  String?  // 'success', 'error', null
   createdAt   DateTime @default(now())

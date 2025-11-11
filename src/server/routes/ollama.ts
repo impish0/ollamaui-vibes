@@ -13,11 +13,45 @@ import type { ChatCompletionRequest } from '../../shared/types.js';
 
 const router = Router();
 
-// Get available models
+// Get available models (Ollama + Providers)
 router.get('/models', async (_req, res, next) => {
   try {
-    const models = await ollamaService.fetchModels();
-    res.json({ models });
+    // Get Ollama models
+    const ollamaModels = await ollamaService.fetchModels();
+    const modelsWithProvider = ollamaModels.map(model => ({
+      ...model,
+      provider: 'ollama'
+    }));
+
+    // Get provider models
+    const providers = await prisma.provider.findMany({
+      where: { enabled: true },
+      select: {
+        name: true,
+        models: true,
+      },
+    });
+
+    // Parse and add provider models
+    for (const provider of providers) {
+      if (provider.models) {
+        try {
+          const providerModels = JSON.parse(provider.models) as string[];
+          for (const modelId of providerModels) {
+            modelsWithProvider.push({
+              name: modelId,
+              provider: provider.name,
+              size: 0,
+              modified_at: new Date().toISOString(),
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to parse models for ${provider.name}:`, error);
+        }
+      }
+    }
+
+    res.json({ models: modelsWithProvider });
   } catch (error) {
     next(error);
   }

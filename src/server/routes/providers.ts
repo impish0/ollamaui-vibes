@@ -57,22 +57,37 @@ router.post('/keys', async (req, res, _next) => {
     // Encrypt the API key
     const encryptedKey = encryptApiKey(apiKey);
 
+    // Fetch available models from the provider
+    let models: string[] = [];
+    try {
+      models = await fetchProviderModels(provider, apiKey);
+    } catch (error) {
+      console.warn(`Failed to fetch models for ${provider}:`, error);
+      // Continue even if model fetch fails
+    }
+
     // Upsert the provider
     await prisma.provider.upsert({
       where: { name: provider },
       update: {
         apiKey: encryptedKey,
         enabled: true,
+        models: JSON.stringify(models),
         updatedAt: new Date(),
       },
       create: {
         name: provider,
         apiKey: encryptedKey,
         enabled: true,
+        models: JSON.stringify(models),
       },
     });
 
-    res.json({ success: true, message: 'API key saved successfully' });
+    res.json({
+      success: true,
+      message: 'API key saved successfully',
+      modelCount: models.length
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: 'Invalid request data', details: error.errors });
@@ -146,6 +161,42 @@ router.post('/test', async (req, res, _next) => {
 });
 
 /**
+ * GET /api/providers/models
+ * Get all available models from enabled providers
+ */
+router.get('/models', async (_req, res, _next) => {
+  try {
+    const providers = await prisma.provider.findMany({
+      where: { enabled: true },
+      select: {
+        name: true,
+        models: true,
+      },
+    });
+
+    const allModels = providers.flatMap((provider) => {
+      if (!provider.models) return [];
+      try {
+        const models = JSON.parse(provider.models) as string[];
+        return models.map((modelId) => ({
+          id: modelId,
+          name: modelId,
+          provider: provider.name,
+        }));
+      } catch (error) {
+        console.error(`Failed to parse models for ${provider.name}:`, error);
+        return [];
+      }
+    });
+
+    res.json({ models: allModels });
+  } catch (error) {
+    console.error('Error fetching provider models:', error);
+    res.status(500).json({ error: 'Failed to fetch provider models' });
+  }
+});
+
+/**
  * DELETE /api/providers/keys/:provider
  * Remove a provider API key
  */
@@ -168,6 +219,87 @@ router.delete('/keys/:provider', async (req, res, _next) => {
     res.status(500).json({ error: 'Failed to remove API key' });
   }
 });
+
+// Fetch available models from a provider
+async function fetchProviderModels(provider: string, apiKey: string): Promise<string[]> {
+  switch (provider) {
+    case 'openai':
+      return await fetchOpenAIModels(apiKey);
+    case 'anthropic':
+      return await fetchAnthropicModels();
+    case 'groq':
+      return await fetchGroqModels(apiKey);
+    case 'google':
+      return await fetchGoogleModels(apiKey);
+    default:
+      return [];
+  }
+}
+
+// Model fetch functions for each provider
+async function fetchOpenAIModels(apiKey: string): Promise<string[]> {
+  try {
+    const response = await fetch('https://api.openai.com/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+    });
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.data
+      .filter((model: any) => model.id.includes('gpt'))
+      .map((model: any) => model.id)
+      .sort();
+  } catch (error) {
+    console.error('Error fetching OpenAI models:', error);
+    return [];
+  }
+}
+
+async function fetchAnthropicModels(): Promise<string[]> {
+  // Anthropic doesn't have a public models API, return known models
+  return [
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-haiku-20241022',
+    'claude-3-opus-20240229',
+    'claude-3-sonnet-20240229',
+    'claude-3-haiku-20240307',
+  ];
+}
+
+async function fetchGroqModels(apiKey: string): Promise<string[]> {
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+    });
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.data.map((model: any) => model.id).sort();
+  } catch (error) {
+    console.error('Error fetching Groq models:', error);
+    return [];
+  }
+}
+
+async function fetchGoogleModels(apiKey: string): Promise<string[]> {
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.models
+      .filter((model: any) => model.name.includes('gemini'))
+      .map((model: any) => model.name.replace('models/', ''))
+      .sort();
+  } catch (error) {
+    console.error('Error fetching Google models:', error);
+    return [];
+  }
+}
 
 // Test functions for each provider
 async function testOpenAI(apiKey: string): Promise<boolean> {

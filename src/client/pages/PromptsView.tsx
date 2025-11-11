@@ -15,12 +15,17 @@ import {
   usePromptCollections,
 } from '../hooks/usePromptsQuery';
 import type { PromptTemplate } from '@shared/types';
+import { PromptEditorModal } from '../components/Prompts/PromptEditorModal';
+import { PromptDetailsModal } from '../components/Prompts/PromptDetailsModal';
+import { CollectionManagerModal } from '../components/Prompts/CollectionManagerModal';
 
 export function PromptsView() {
   const [selectedCollection, setSelectedCollection] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFavorites, setShowFavorites] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
+  const [showCollectionManager, setShowCollectionManager] = useState(false);
 
   const { data: collections = [] } = usePromptCollections();
   const { data: prompts = [], isLoading: promptsLoading } = usePrompts({
@@ -45,9 +50,7 @@ export function PromptsView() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  /* TODO: Collection manager modal */
-                }}
+                onClick={() => setShowCollectionManager(true)}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 <Folder className="w-4 h-4" />
@@ -158,9 +161,7 @@ export function PromptsView() {
               <PromptCard
                 key={prompt.id}
                 prompt={prompt}
-                onSelect={() => {
-                  /* TODO: Open prompt editor modal */
-                }}
+                onSelect={() => setSelectedPromptId(prompt.id)}
               />
             ))}
           </div>
@@ -169,18 +170,23 @@ export function PromptsView() {
 
       {/* Modals */}
       {isCreating && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Create New Prompt</h2>
-            {/* TODO: Create prompt form */}
-            <button
-              onClick={() => setIsCreating(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <PromptEditorModal
+          onClose={() => setIsCreating(false)}
+          onSuccess={() => setIsCreating(false)}
+        />
+      )}
+
+      {selectedPromptId && (
+        <PromptDetailsModal
+          promptId={selectedPromptId}
+          onClose={() => setSelectedPromptId(null)}
+        />
+      )}
+
+      {showCollectionManager && (
+        <CollectionManagerModal
+          onClose={() => setShowCollectionManager(false)}
+        />
       )}
     </div>
   );

@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { useSystemPrompts } from '../../hooks/useSystemPromptsQuery';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { usePrompts } from '../../hooks/usePromptsQuery';
 
 interface SystemPromptSelectorProps {
   selectedPromptId?: string;
@@ -12,7 +12,14 @@ export const SystemPromptSelector = ({
   onPromptChange,
   disabled,
 }: SystemPromptSelectorProps) => {
-  const { data: systemPrompts = [], isLoading } = useSystemPrompts();
+  // Fetch all prompts and filter for system prompts on the client side
+  // This avoids needing a separate backend endpoint
+  const { data: allPrompts = [], isLoading } = usePrompts({});
+  const systemPrompts = useMemo(
+    () => allPrompts.filter((p) => p.isSystemPrompt),
+    [allPrompts]
+  );
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +106,8 @@ export const SystemPromptSelector = ({
               </div>
             ) : systemPrompts.length === 0 ? (
               <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                No system prompts yet. Create one to get started!
+                <p>No system prompts yet.</p>
+                <p className="mt-1">Go to <span className="font-medium">Prompts</span> tab and mark prompts as system prompts!</p>
               </div>
             ) : (
               systemPrompts.map((prompt) => (
@@ -117,8 +125,13 @@ export const SystemPromptSelector = ({
                 >
                   <div className="text-sm font-medium truncate">{prompt.name}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                    {prompt.content}
+                    {prompt.currentVersion?.content || prompt.description || 'No content'}
                   </div>
+                  {prompt.currentVersion && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      v{prompt.currentVersion.versionNumber}
+                    </div>
+                  )}
                 </button>
               ))
             )}

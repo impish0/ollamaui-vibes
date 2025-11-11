@@ -24,6 +24,7 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
     prompt?.tags ? (typeof prompt.tags === 'string' ? JSON.parse(prompt.tags) : prompt.tags) : []
   );
   const [isFavorite, setIsFavorite] = useState(prompt?.isFavorite || false);
+  const [isSystemPrompt, setIsSystemPrompt] = useState(prompt?.isSystemPrompt || false);
   const [changeDescription, setChangeDescription] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -93,6 +94,7 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
           changeDescription: content !== prompt.currentVersion?.content ? changeDescription : undefined,
           tags: JSON.stringify(tags) !== prompt.tags ? tags : undefined,
           isFavorite: isFavorite !== prompt.isFavorite ? isFavorite : undefined,
+          isSystemPrompt: isSystemPrompt !== prompt.isSystemPrompt ? isSystemPrompt : undefined,
         };
 
         await updateMutation.mutateAsync({ id: prompt.id, data: updateData });
@@ -105,6 +107,7 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
           content,
           tags: tags.length > 0 ? tags : undefined,
           isFavorite,
+          isSystemPrompt,
         };
 
         await createMutation.mutateAsync(createData);
@@ -182,7 +185,7 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
             </div>
           )}
 
-          {/* Name & Favorite */}
+          {/* Name & Options */}
           <div className="flex gap-3">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
@@ -214,7 +217,30 @@ export function PromptEditorModal({ prompt, onClose, onSuccess }: PromptEditorMo
                 }`}
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
+              <button
+                onClick={() => setIsSystemPrompt(!isSystemPrompt)}
+                className={`p-3 rounded-lg transition-colors ${
+                  isSystemPrompt
+                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                }`}
+                title="Toggle system prompt (can be used in chats)"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </button>
               <button
                 onClick={() => setIsFavorite(!isFavorite)}
                 className={`p-3 rounded-lg transition-colors ${

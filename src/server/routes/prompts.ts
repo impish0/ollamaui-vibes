@@ -13,6 +13,7 @@ const CreatePromptTemplateSchema = z.object({
   content: z.string().min(1).max(50000), // Initial version content
   tags: z.array(z.string()).optional(),
   isFavorite: z.boolean().optional(),
+  isSystemPrompt: z.boolean().optional(),
 });
 
 const UpdatePromptTemplateSchema = z.object({
@@ -23,6 +24,7 @@ const UpdatePromptTemplateSchema = z.object({
   changeDescription: z.string().max(500).optional(),
   tags: z.array(z.string()).optional(),
   isFavorite: z.boolean().optional(),
+  isSystemPrompt: z.boolean().optional(),
 });
 
 const PromptIdSchema = z.object({
@@ -188,6 +190,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         collectionId: data.collectionId,
         tags: data.tags ? JSON.stringify(data.tags) : null,
         isFavorite: data.isFavorite || false,
+        isSystemPrompt: data.isSystemPrompt || false,
         versions: {
           create: {
             content: data.content,
@@ -300,6 +303,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
     if (data.collectionId !== undefined) updateData.collectionId = data.collectionId;
     if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);
     if (data.isFavorite !== undefined) updateData.isFavorite = data.isFavorite;
+    if (data.isSystemPrompt !== undefined) updateData.isSystemPrompt = data.isSystemPrompt;
     if (newVersionId) updateData.currentVersionId = newVersionId;
 
     const prompt = await prisma.promptTemplate.update({

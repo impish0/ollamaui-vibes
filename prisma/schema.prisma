@@ -135,6 +135,7 @@ model PromptTemplate {
   currentVersion   PromptVersion?    @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
   tags             String?           // JSON array of tags for search
   isFavorite       Boolean           @default(false)
+  isSystemPrompt   Boolean           @default(false) // Can be used as system prompt in chats
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -142,6 +143,7 @@ model PromptTemplate {
   @@index([name])
   @@index([collectionId])
   @@index([isFavorite])
+  @@index([isSystemPrompt])
   @@index([createdAt])
 }
 

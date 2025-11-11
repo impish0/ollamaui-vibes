@@ -306,6 +306,7 @@ export interface PromptTemplate {
   versions?: PromptVersion[];
   tags: string | null; // JSON array of tags
   isFavorite: boolean;
+  isSystemPrompt: boolean; // Can be used as system prompt in chats
   createdAt: string;
   updatedAt: string;
 }
@@ -340,6 +341,7 @@ export interface CreatePromptTemplateRequest {
   content: string; // Initial version content
   tags?: string[]; // Array of tags
   isFavorite?: boolean;
+  isSystemPrompt?: boolean;
 }
 
 export interface UpdatePromptTemplateRequest {
@@ -350,6 +352,7 @@ export interface UpdatePromptTemplateRequest {
   changeDescription?: string; // Description for new version
   tags?: string[];
   isFavorite?: boolean;
+  isSystemPrompt?: boolean;
 }
 
 export interface CreatePromptVersionRequest {

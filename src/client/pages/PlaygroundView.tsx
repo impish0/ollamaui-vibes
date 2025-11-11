@@ -273,7 +273,7 @@ export function PlaygroundView() {
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 space-y-4">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
@@ -286,6 +286,14 @@ export function PlaygroundView() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={addModelSlot}
+              disabled={modelSlots.length >= 4}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+            >
+              <Plus className="w-4 h-4" />
+              Add Model ({modelSlots.length}/4)
+            </button>
             <button
               onClick={resetAll}
               className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
@@ -301,93 +309,6 @@ export function PlaygroundView() {
               <Download className="w-4 h-4" />
               Export
             </button>
-          </div>
-        </div>
-
-        {/* Prompt Input */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Prompt
-            </label>
-            <button
-              onClick={() => setShowSystemPrompt(!showSystemPrompt)}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {showSystemPrompt ? 'Hide' : 'Add'} System Prompt
-            </button>
-          </div>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter your prompt here... (e.g., 'Explain quantum computing in simple terms')"
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            rows={3}
-          />
-          {showSystemPrompt && (
-            <div className="space-y-2">
-              {/* System Prompt Selector */}
-              <select
-                value={selectedSystemPromptId}
-                onChange={(e) => handleSystemPromptChange(e.target.value)}
-                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Custom System Prompt</option>
-                {systemPrompts.map((sp) => (
-                  <option key={sp.id} value={sp.id}>
-                    {sp.name}
-                  </option>
-                ))}
-              </select>
-
-              {/* System Prompt Content */}
-              <textarea
-                value={systemPrompt}
-                onChange={(e) => {
-                  setSystemPrompt(e.target.value);
-                  setSelectedSystemPromptId(''); // Clear selection when manually editing
-                }}
-                placeholder="Enter custom system prompt or select one above"
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                rows={3}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Run Button */}
-        <div className="flex items-center gap-3">
-          {isRunning ? (
-            <button
-              onClick={stopComparison}
-              className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <X className="w-5 h-5" />
-              Stop
-            </button>
-          ) : (
-            <button
-              onClick={runComparison}
-              disabled={!prompt.trim() || !modelSlots.some((s) => s.modelName)}
-              className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
-            >
-              <Play className="w-5 h-5" />
-              Run Comparison
-            </button>
-          )}
-
-          <button
-            onClick={addModelSlot}
-            disabled={modelSlots.length >= 4}
-            className="flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
-          >
-            <Plus className="w-4 h-4" />
-            Add Model ({modelSlots.length}/4)
-          </button>
-
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Selected: {modelSlots.filter((s) => s.modelName).length} model
-            {modelSlots.filter((s) => s.modelName).length !== 1 ? 's' : ''}
           </div>
         </div>
       </div>
@@ -413,6 +334,89 @@ export function PlaygroundView() {
             onCopy={() => copyResponse(slot.response)}
           />
         ))}
+      </div>
+
+      {/* Prompt Input (Bottom) */}
+      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="max-w-6xl mx-auto space-y-3">
+          {/* System Prompt Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {modelSlots.filter((s) => s.modelName).length} model{modelSlots.filter((s) => s.modelName).length !== 1 ? 's' : ''} selected
+            </div>
+            <button
+              onClick={() => setShowSystemPrompt(!showSystemPrompt)}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {showSystemPrompt ? '− Hide' : '+ Add'} System Prompt
+            </button>
+          </div>
+
+          {/* System Prompt Section */}
+          {showSystemPrompt && (
+            <div className="space-y-2">
+              {/* System Prompt Selector */}
+              <select
+                value={selectedSystemPromptId}
+                onChange={(e) => handleSystemPromptChange(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Custom System Prompt</option>
+                {systemPrompts.map((sp) => (
+                  <option key={sp.id} value={sp.id}>
+                    {sp.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* System Prompt Content */}
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => {
+                  setSystemPrompt(e.target.value);
+                  setSelectedSystemPromptId(''); // Clear selection when manually editing
+                }}
+                placeholder="Enter custom system prompt or select one above"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={2}
+              />
+            </div>
+          )}
+
+          {/* Prompt Input & Run Button */}
+          <div className="flex gap-3">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !isRunning) {
+                  runComparison();
+                }
+              }}
+              placeholder="Enter your prompt here... (Ctrl+Enter to run)"
+              className="flex-1 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              rows={3}
+            />
+            {isRunning ? (
+              <button
+                onClick={stopComparison}
+                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 self-end"
+              >
+                <X className="w-5 h-5" />
+                Stop
+              </button>
+            ) : (
+              <button
+                onClick={runComparison}
+                disabled={!prompt.trim() || !modelSlots.some((s) => s.modelName)}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center gap-2 self-end"
+              >
+                <Play className="w-5 h-5" />
+                Run
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

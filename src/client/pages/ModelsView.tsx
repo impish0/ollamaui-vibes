@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useChatStore } from '../store/chatStore';
+import { useCachedModels } from '../hooks/useModelsQuery';
 import { Trash2, Info, HardDrive, AlertCircle, CheckCircle, Loader2, Plus, RefreshCw } from 'lucide-react';
 import type { OllamaModel } from '@shared/types';
 
 export function ModelsView() {
-  const { models } = useChatStore();
+  const { data: modelsData, refetch } = useCachedModels();
+  const models = modelsData?.models || [];
+
   const [pulling, setPulling] = useState<Record<string, boolean>>({});
   const [pullProgress, setPullProgress] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -136,8 +138,7 @@ export function ModelsView() {
   const refreshModels = async () => {
     try {
       setRefreshing(true);
-      await fetch('/api/ollama/models');
-      // Models will update via store
+      await refetch();
     } catch (err) {
       console.error('Error refreshing models:', err);
       setError('Failed to refresh models');

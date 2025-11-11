@@ -2,7 +2,7 @@ import { useEffect, lazy, Suspense, useMemo, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useChatStore } from './store/chatStore';
 import { useChat, useCreateChat } from './hooks/useChatsQuery';
-import { useCachedModels } from './hooks/useModelsQuery';
+import { useAllModels } from './hooks/useAllModels';
 import { useSettings } from './hooks/useSettingsQuery';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Layout/Header';
@@ -39,12 +39,10 @@ function App() {
   const { data: currentChat } = useChat(currentChatId);
   const { data: settings } = useSettings();
   const createChatMutation = useCreateChat();
-  const { data: modelsData } = useCachedModels();
+  const { data: models = [] } = useAllModels();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'chat' | 'collections' | 'logs' | 'models' | 'playground' | 'prompts'>('chat');
-
-  const models = modelsData?.models || [];
 
   // Get default model from settings or fallback to first available
   const defaultModel = useMemo(() => {

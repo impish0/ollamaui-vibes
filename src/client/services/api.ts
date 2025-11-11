@@ -213,3 +213,45 @@ export const settingsApi = {
       method: 'POST',
     }),
 };
+
+// Providers API
+export const providersApi = {
+  getModels: () =>
+    fetchJson<{ models: Array<{ id: string; name: string; provider: string }> }>(
+      `${API_BASE}/providers/models`
+    ),
+
+  getKeys: () =>
+    fetchJson<Record<string, string>>(`${API_BASE}/providers/keys`),
+
+  saveKey: (provider: string, apiKey: string) =>
+    fetchJson<{ success: boolean; message: string; modelCount: number }>(
+      `${API_BASE}/providers/keys`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ provider, apiKey }),
+      }
+    ),
+
+  testKey: (provider: string, apiKey: string) =>
+    fetchJson<{ success: boolean; message: string }>(
+      `${API_BASE}/providers/test`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ provider, apiKey }),
+      }
+    ),
+
+  refreshModels: (provider: string) =>
+    fetchJson<{ success: boolean; message: string; modelCount: number; models: string[] }>(
+      `${API_BASE}/providers/refresh/${provider}`,
+      {
+        method: 'POST',
+      }
+    ),
+
+  deleteKey: (provider: string) =>
+    fetch(`${API_BASE}/providers/keys/${provider}`, {
+      method: 'DELETE',
+    }),
+};

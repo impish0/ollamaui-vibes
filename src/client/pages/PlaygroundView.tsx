@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '../store/chatStore';
-import { useCachedModels } from '../hooks/useModelsQuery';
+import { useAllModels } from '../hooks/useAllModels';
 import { useSystemPrompts } from '../hooks/useSystemPromptsQuery';
 import { ModelParameters } from '../components/ModelParameters';
 import { ResponseAnalyzer } from '../components/Playground/ResponseAnalyzer';
@@ -30,9 +30,8 @@ interface ModelSlot {
 
 export function PlaygroundView() {
   const { currentParameters, collections } = useChatStore();
-  const { data: modelsData } = useCachedModels();
+  const { data: models = [] } = useAllModels();
   const { data: systemPrompts = [] } = useSystemPrompts();
-  const models = modelsData?.models || [];
 
   const [prompt, setPrompt] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');

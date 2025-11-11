@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../db.js';
 import { ollamaService } from '../services/ollamaService.js';
+import { providerService } from '../services/providerService.js';
 import { titleGenerator } from '../services/titleGenerator.js';
 import { documentService } from '../services/documentService.js';
 import { vectorService } from '../services/vectorService.js';
@@ -291,10 +292,14 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
       // Send confirmation that user message was saved
       res.write(`data: ${JSON.stringify({ userMessageSaved: true, userMessageId: userMessage.id })}\n\n`);
 
+      // Detect provider for the model
+      const provider = await providerService.getProviderForModel(model);
+
       // Log the full prompt being sent to the model
       logInfo('📝 PROMPT SENT TO MODEL', {
         chatId,
         model,
+        provider: provider || 'ollama',
         estimatedTokens,
         contextWindowSize,
         ragEnabled: !!(collectionIds && collectionIds.length > 0),
@@ -302,17 +307,37 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
         messagesCount: messages.length,
       });
 
-      // Stream from Ollama with appropriate context window size
-      for await (const chunk of ollamaService.streamChat({
-        model,
-        messages,
-        stream: true,
-        options: {
-          num_ctx: contextWindowSize
+      // Stream from appropriate provider or Ollama
+      if (provider) {
+        // Stream from external provider (OpenAI, Anthropic, Groq, Google)
+        logInfo(`Routing to ${provider} provider`, { model });
+
+        for await (const chunk of providerService.streamChat(provider, {
+          model,
+          messages,
+          stream: true,
+          options: request.options
+        })) {
+          if (!chunk.done && chunk.content) {
+            assistantResponse += chunk.content;
+            res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
+          }
         }
-      })) {
-        assistantResponse += chunk;
-        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+      } else {
+        // Stream from Ollama with appropriate context window size
+        logInfo('Routing to Ollama', { model });
+
+        for await (const chunk of ollamaService.streamChat({
+          model,
+          messages,
+          stream: true,
+          options: {
+            num_ctx: contextWindowSize
+          }
+        })) {
+          assistantResponse += chunk;
+          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+        }
       }
 
       // Verify we got some response

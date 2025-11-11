@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { ollamaService } from '../services/ollamaService.js';
+import { providerService } from '../services/providerService.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import type { ModelParameters } from '../../shared/types.js';
 
@@ -23,6 +24,7 @@ const PlaygroundCompareSchema = z.object({
     }).optional(),
   })).min(1).max(4, 'Maximum 4 models can be compared'),
   systemPrompt: z.string().optional(),
+  collectionIds: z.array(z.string()).optional(),
 });
 
 /**
@@ -71,30 +73,64 @@ router.post('/compare/stream', async (req: Request, res: Response) => {
         let fullResponse = '';
         let tokenCount = 0;
 
-        // Stream from this model
-        const stream = ollamaService.streamChat({
-          model: modelName,
-          messages,
-          stream: true,
-          options: model.parameters as ModelParameters,
-        });
+        // Detect provider for this model
+        const provider = await providerService.getProviderForModel(modelName);
 
-        for await (const chunk of stream) {
-          if (!firstTokenTimes.has(modelName)) {
-            firstTokenTimes.set(modelName, Date.now());
-          }
-
-          fullResponse += chunk;
-          tokenCount++;
-
-          // Send chunk event
-          res.write(`data: ${JSON.stringify({
-            type: 'chunk',
+        // Stream from appropriate provider or Ollama
+        if (provider) {
+          // Stream from external provider
+          const stream = providerService.streamChat(provider, {
             model: modelName,
-            content: chunk,
-            fullContent: fullResponse,
-            tokenCount,
-          })}\n\n`);
+            messages,
+            stream: true,
+            options: model.parameters as ModelParameters,
+          });
+
+          for await (const chunk of stream) {
+            if (!chunk.done && chunk.content) {
+              if (!firstTokenTimes.has(modelName)) {
+                firstTokenTimes.set(modelName, Date.now());
+              }
+
+              fullResponse += chunk.content;
+              tokenCount++;
+
+              // Send chunk event
+              res.write(`data: ${JSON.stringify({
+                type: 'chunk',
+                model: modelName,
+                content: chunk.content,
+                fullContent: fullResponse,
+                tokenCount,
+              })}\n\n`);
+            }
+          }
+        } else {
+          // Stream from Ollama
+          const stream = ollamaService.streamChat({
+            model: modelName,
+            messages,
+            stream: true,
+            options: model.parameters as ModelParameters,
+          });
+
+          for await (const chunk of stream) {
+            if (!firstTokenTimes.has(modelName)) {
+              firstTokenTimes.set(modelName, Date.now());
+            }
+
+            fullResponse += chunk;
+            tokenCount++;
+
+            // Send chunk event
+            res.write(`data: ${JSON.stringify({
+              type: 'chunk',
+              model: modelName,
+              content: chunk,
+              fullContent: fullResponse,
+              tokenCount,
+            })}\n\n`);
+          }
         }
 
         const endTime = Date.now();
@@ -188,15 +224,36 @@ router.post('/compare', async (req: Request, res: Response) => {
 
         try {
           let fullResponse = '';
-          const stream = ollamaService.streamChat({
-            model: model.name,
-            messages,
-            stream: true,
-            options: model.parameters as ModelParameters,
-          });
 
-          for await (const chunk of stream) {
-            fullResponse += chunk;
+          // Detect provider for this model
+          const provider = await providerService.getProviderForModel(model.name);
+
+          if (provider) {
+            // Stream from external provider
+            const stream = providerService.streamChat(provider, {
+              model: model.name,
+              messages,
+              stream: true,
+              options: model.parameters as ModelParameters,
+            });
+
+            for await (const chunk of stream) {
+              if (!chunk.done && chunk.content) {
+                fullResponse += chunk.content;
+              }
+            }
+          } else {
+            // Stream from Ollama
+            const stream = ollamaService.streamChat({
+              model: model.name,
+              messages,
+              stream: true,
+              options: model.parameters as ModelParameters,
+            });
+
+            for await (const chunk of stream) {
+              fullResponse += chunk;
+            }
           }
 
           const totalTime = Date.now() - startTime;

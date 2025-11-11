@@ -12,7 +12,10 @@
     "preview": "vite preview",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "qa:full": "npm run qa:types && npm run qa:build && echo '✅ All quality checks passed!'",
+    "qa:build": "npm run build:server && npm run build",
+    "qa:types": "tsc --noEmit && tsc --project tsconfig.server.json --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

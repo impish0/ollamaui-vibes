@@ -11,6 +11,7 @@ import { SettingsModal } from './components/Settings';
 import { CollectionsPage } from './pages/Collections';
 import { LogsPage } from './pages/Logs';
 import { ModelsView } from './pages/ModelsView';
+import { PlaygroundView } from './pages/PlaygroundView';
 import { toastUtils } from './utils/toast';
 
 // Lazy load ChatWindow (loaded when user opens a chat)
@@ -151,13 +152,7 @@ function App() {
             ) : currentView === 'models' ? (
               <ModelsView />
             ) : currentView === 'playground' ? (
-              <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                <div className="text-center space-y-4 p-8">
-                  <div className="text-6xl mb-4">🎮</div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Playground</h2>
-                  <p className="text-sm">Coming soon! Multi-model comparison and experimentation.</p>
-                </div>
-              </div>
+              <PlaygroundView />
             ) : currentChat ? (
               <Suspense fallback={<ChatWindowLoading />}>
                 <ChatWindow chat={currentChat} />

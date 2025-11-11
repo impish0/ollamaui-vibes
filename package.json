@@ -24,6 +24,7 @@
     "@types/react-window": "^1.8.8",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
+    "diff": "^8.0.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "hnswlib-node": "^3.0.0",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
+    "@types/diff": "^7.0.2",
     "@types/express": "^5.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.10.0",

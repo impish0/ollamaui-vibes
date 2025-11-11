@@ -3,9 +3,10 @@ import { useChatStore } from '../store/chatStore';
 import { useCachedModels } from '../hooks/useModelsQuery';
 import { useSystemPrompts } from '../hooks/useSystemPromptsQuery';
 import { ModelParameters } from '../components/ModelParameters';
+import { ResponseAnalyzer } from '../components/Playground/ResponseAnalyzer';
 import {
   Play, Plus, X, Copy, Download, RotateCcw, Settings2,
-  Zap, Clock, Activity, CheckCircle2, AlertCircle
+  Zap, Clock, Activity, CheckCircle2, AlertCircle, BarChart3
 } from 'lucide-react';
 import type { ModelParameters as ModelParametersType } from '@shared/types';
 import ReactMarkdown from 'react-markdown';
@@ -37,6 +38,7 @@ export function PlaygroundView() {
   const [selectedSystemPromptId, setSelectedSystemPromptId] = useState<string>('');
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [showAnalyzer, setShowAnalyzer] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   // Initialize with 2 model slots
@@ -287,6 +289,14 @@ export function PlaygroundView() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowAnalyzer(!showAnalyzer)}
+              disabled={modelSlots.filter((s) => s.response).length < 2}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+            >
+              <BarChart3 className="w-4 h-4" />
+              {showAnalyzer ? 'Hide' : 'Analyze'}
+            </button>
+            <button
               onClick={addModelSlot}
               disabled={modelSlots.length >= 4}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
@@ -313,28 +323,46 @@ export function PlaygroundView() {
         </div>
       </div>
 
-      {/* Model Slots Grid */}
-      <div className={`flex-1 overflow-y-auto p-6 grid gap-6 ${
-        modelSlots.length === 1
-          ? 'grid-cols-1'
-          : modelSlots.length === 2
-          ? 'grid-cols-2'
-          : modelSlots.length === 3
-          ? 'grid-cols-3'
-          : 'grid-cols-2'
-      }`}>
-        {modelSlots.map((slot) => (
-          <ModelSlotCard
-            key={slot.id}
-            slot={slot}
-            models={models}
-            onUpdate={(updates) => updateModelSlot(slot.id, updates)}
-            onRemove={() => removeModelSlot(slot.id)}
-            canRemove={modelSlots.length > 1}
-            onCopy={() => copyResponse(slot.response)}
+      {/* Model Slots Grid or Analyzer */}
+      {showAnalyzer ? (
+        <div className="flex-1 overflow-hidden">
+          <ResponseAnalyzer
+            responses={modelSlots
+              .filter((s) => s.response && s.modelName)
+              .map((s) => ({
+                model: s.modelName!,
+                response: s.response,
+                speed: s.metrics?.totalTime || 0,
+                tokens: s.metrics?.tokenCount || 0,
+                cost: 0, // Ollama is free, will calculate for API providers later
+                qualityScore: 0, // Calculated in analyzer
+              }))}
+            onClose={() => setShowAnalyzer(false)}
           />
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className={`flex-1 overflow-y-auto p-6 grid gap-6 ${
+          modelSlots.length === 1
+            ? 'grid-cols-1'
+            : modelSlots.length === 2
+            ? 'grid-cols-2'
+            : modelSlots.length === 3
+            ? 'grid-cols-3'
+            : 'grid-cols-2'
+        }`}>
+          {modelSlots.map((slot) => (
+            <ModelSlotCard
+              key={slot.id}
+              slot={slot}
+              models={models}
+              onUpdate={(updates) => updateModelSlot(slot.id, updates)}
+              onRemove={() => removeModelSlot(slot.id)}
+              canRemove={modelSlots.length > 1}
+              onCopy={() => copyResponse(slot.response)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Prompt Input (Bottom) */}
       <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">

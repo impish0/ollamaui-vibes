@@ -18,6 +18,7 @@ import type { PromptTemplate } from '@shared/types';
 import { PromptEditorModal } from '../components/Prompts/PromptEditorModal';
 import { PromptDetailsModal } from '../components/Prompts/PromptDetailsModal';
 import { CollectionManagerModal } from '../components/Prompts/CollectionManagerModal';
+import { PromptImportModal } from '../components/Prompts/PromptImportModal';
 
 export function PromptsView() {
   const [selectedCollection, setSelectedCollection] = useState<string | undefined>(undefined);
@@ -26,6 +27,7 @@ export function PromptsView() {
   const [isCreating, setIsCreating] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [showCollectionManager, setShowCollectionManager] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const { data: collections = [] } = usePromptCollections();
   const { data: prompts = [], isLoading: promptsLoading } = usePrompts({
@@ -33,6 +35,34 @@ export function PromptsView() {
     favorite: showFavorites,
     search: searchQuery || undefined,
   });
+
+  const handleExport = () => {
+    const exportData = {
+      version: '1.0',
+      exported: new Date().toISOString(),
+      prompts: prompts.map((p) => ({
+        name: p.name,
+        description: p.description,
+        content: p.currentVersion?.content || '',
+        collectionId: p.collectionId,
+        tags: p.tags,
+        isFavorite: p.isFavorite,
+      })),
+      collections: collections,
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ollama-prompts-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -58,9 +88,7 @@ export function PromptsView() {
               </button>
 
               <button
-                onClick={() => {
-                  /* TODO: Import modal */
-                }}
+                onClick={() => setShowImport(true)}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 <Upload className="w-4 h-4" />
@@ -68,10 +96,9 @@ export function PromptsView() {
               </button>
 
               <button
-                onClick={() => {
-                  /* TODO: Export functionality */
-                }}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+                onClick={handleExport}
+                disabled={prompts.length === 0}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download className="w-4 h-4" />
                 Export
@@ -186,6 +213,12 @@ export function PromptsView() {
       {showCollectionManager && (
         <CollectionManagerModal
           onClose={() => setShowCollectionManager(false)}
+        />
+      )}
+
+      {showImport && (
+        <PromptImportModal
+          onClose={() => setShowImport(false)}
         />
       )}
     </div>

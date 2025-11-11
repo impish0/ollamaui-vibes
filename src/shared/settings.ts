@@ -13,6 +13,8 @@ export interface AppSettings {
     triggerAfterMessages: number;
     regenerateAfterMessages: number; // 0 = disabled, >0 = regenerate after N messages
     maxLength: number;
+    useCurrentChatModel: boolean; // true = use the model from the chat, false = use specific model below
+    specificModel: string | null; // null = use first available Ollama model
   };
 
   // Model Default Settings
@@ -67,6 +69,8 @@ Title:`,
     triggerAfterMessages: 2,
     regenerateAfterMessages: 0, // disabled by default, can set to 8 for mid-conversation regeneration
     maxLength: 60,
+    useCurrentChatModel: false, // Default to using a specific model for reliability
+    specificModel: null, // null = use first available Ollama model
   },
 
   model: {

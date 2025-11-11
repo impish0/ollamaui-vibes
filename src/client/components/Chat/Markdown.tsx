@@ -148,11 +148,15 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, defaultOpenThinking
       }
 
       return (
-        <div className="relative group">
-          <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="relative group my-3">
+          {/* Language label and copy button header */}
+          <div className="flex items-center justify-between px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-b-0 border-gray-300 dark:border-gray-700 rounded-t-xl">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+              {match ? match[1] : 'code'}
+            </span>
             <button
               type="button"
-              className="p-1.5 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100"
+              className="p-1.5 rounded hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(codeText);
@@ -162,20 +166,22 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, defaultOpenThinking
                 } catch {}
               }}
               aria-label="Copy code"
+              title="Copy to clipboard"
             >
               {copiedHash === codeText.slice(0, 20) ? (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 13l4 4L19 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M5 13l4 4L19 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               ) : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2"/><path d="M5 15V5a2 2 0 012-2h10" strokeWidth="2"/></svg>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2"/>
+                  <path d="M5 15V5a2 2 0 012-2h10" strokeWidth="2"/>
+                </svg>
               )}
             </button>
           </div>
-          {match && (
-            <div className="absolute left-0 top-0 text-[10px] uppercase tracking-wide px-2 py-1 text-gray-500 dark:text-gray-400">
-              {match[1]}
-            </div>
-          )}
-          <pre className={className}>
+          {/* Code block */}
+          <pre className={`${className} !mt-0 !rounded-t-none border-t-0`}>
             <code {...props}>{codeText}</code>
           </pre>
         </div>

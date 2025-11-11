@@ -12,6 +12,7 @@ import { CollectionsPage } from './pages/Collections';
 import { LogsPage } from './pages/Logs';
 import { ModelsView } from './pages/ModelsView';
 import { PlaygroundView } from './pages/PlaygroundView';
+import { PromptsView } from './pages/PromptsView';
 import { toastUtils } from './utils/toast';
 
 // Lazy load ChatWindow (loaded when user opens a chat)
@@ -38,7 +39,7 @@ function App() {
   const createChatMutation = useCreateChat();
   const { data: modelsData } = useCachedModels();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'chat' | 'collections' | 'logs' | 'models' | 'playground'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'collections' | 'logs' | 'models' | 'playground' | 'prompts'>('chat');
 
   const models = modelsData?.models || [];
 
@@ -153,6 +154,8 @@ function App() {
               <ModelsView />
             ) : currentView === 'playground' ? (
               <PlaygroundView />
+            ) : currentView === 'prompts' ? (
+              <PromptsView />
             ) : currentChat ? (
               <Suspense fallback={<ChatWindowLoading />}>
                 <ChatWindow chat={currentChat} />

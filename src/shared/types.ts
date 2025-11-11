@@ -282,3 +282,131 @@ export interface SystemResources {
     };
   };
 }
+
+// Prompt Version Control Types
+export interface PromptCollection {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  prompts?: PromptTemplate[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  collectionId: string | null;
+  collection?: PromptCollection | null;
+  currentVersionId: string | null;
+  currentVersion?: PromptVersion | null;
+  versions?: PromptVersion[];
+  tags: string | null; // JSON array of tags
+  isFavorite: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PromptVersion {
+  id: string;
+  promptId: string;
+  prompt?: PromptTemplate;
+  content: string;
+  variables: string | null; // JSON array of variable names (e.g., ["name", "product"])
+  versionNumber: number;
+  changeDescription: string | null;
+  createdAt: string;
+}
+
+export interface CreatePromptCollectionRequest {
+  name: string;
+  description?: string;
+  color?: string;
+}
+
+export interface UpdatePromptCollectionRequest {
+  name?: string;
+  description?: string;
+  color?: string;
+}
+
+export interface CreatePromptTemplateRequest {
+  name: string;
+  description?: string;
+  collectionId?: string;
+  content: string; // Initial version content
+  tags?: string[]; // Array of tags
+  isFavorite?: boolean;
+}
+
+export interface UpdatePromptTemplateRequest {
+  name?: string;
+  description?: string;
+  collectionId?: string;
+  content?: string; // Creates new version if provided
+  changeDescription?: string; // Description for new version
+  tags?: string[];
+  isFavorite?: boolean;
+}
+
+export interface CreatePromptVersionRequest {
+  promptId: string;
+  content: string;
+  changeDescription?: string;
+}
+
+export interface PromptDiff {
+  additions: Array<{
+    line: number;
+    content: string;
+  }>;
+  deletions: Array<{
+    line: number;
+    content: string;
+  }>;
+  unchanged: Array<{
+    line: number;
+    content: string;
+  }>;
+}
+
+export interface PromptVariableValue {
+  name: string;
+  value: string;
+}
+
+export interface InterpolatePromptRequest {
+  content: string;
+  variables: PromptVariableValue[];
+}
+
+export interface ImportPromptsRequest {
+  prompts: Array<{
+    name: string;
+    description?: string;
+    content: string;
+    collectionName?: string;
+    tags?: string[];
+  }>;
+}
+
+export interface ExportPromptsResponse {
+  prompts: Array<{
+    name: string;
+    description: string | null;
+    content: string;
+    collectionName: string | null;
+    tags: string[];
+    versions: Array<{
+      versionNumber: number;
+      content: string;
+      changeDescription: string | null;
+      createdAt: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  exportedAt: string;
+}

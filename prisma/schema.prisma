@@ -109,3 +109,54 @@ model PromptLog {
   @@index([model])
   @@index([createdAt])
 }
+
+// Prompt Version Control Models
+model PromptCollection {
+  id          String           @id @default(cuid())
+  name        String           @unique // Max 100 chars, validated by Zod
+  description String?          // Optional description
+  color       String?          // Optional color code for UI
+  prompts     PromptTemplate[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([name])
+  @@index([createdAt])
+}
+
+model PromptTemplate {
+  id               String            @id @default(cuid())
+  name             String            // Max 200 chars, validated by Zod
+  description      String?           // Optional description
+  collectionId     String?
+  collection       PromptCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  currentVersionId String?           @unique // Points to active version
+  versions         PromptVersion[]   @relation("PromptVersions")
+  currentVersion   PromptVersion?    @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  tags             String?           // JSON array of tags for search
+  isFavorite       Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([name, collectionId]) // Unique name within collection
+  @@index([name])
+  @@index([collectionId])
+  @@index([isFavorite])
+  @@index([createdAt])
+}
+
+model PromptVersion {
+  id                String           @id @default(cuid())
+  promptId          String
+  prompt            PromptTemplate   @relation("PromptVersions", fields: [promptId], references: [id], onDelete: Cascade)
+  content           String           // The actual prompt text (max 50KB)
+  variables         String?          // JSON array of variable names found (e.g., ["name", "product"])
+  versionNumber     Int              // Incremental version number
+  changeDescription String?          // Optional description of what changed
+  createdAt         DateTime         @default(now())
+  currentVersionOf  PromptTemplate?  @relation("CurrentVersion")
+
+  @@unique([promptId, versionNumber]) // Ensure unique version numbers per prompt
+  @@index([promptId, versionNumber])
+  @@index([createdAt])
+}

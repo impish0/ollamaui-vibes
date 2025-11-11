@@ -124,6 +124,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                   <TitleGenerationSettings
                     data={formData.titleGeneration || settings?.titleGeneration}
                     onChange={(key, value) => updateField('titleGeneration', key, value)}
+                    models={models}
                   />
                 )}
 
@@ -202,29 +203,95 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
 const TitleGenerationSettings = ({
   data,
   onChange,
+  models,
 }: {
   data: any;
   onChange: (key: keyof AppSettings['titleGeneration'], value: any) => void;
-}) => (
-  <div className="space-y-6">
-    <div>
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Title Generation</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Configure how chat titles are automatically generated
-      </p>
-    </div>
+  models: any;
+}) => {
+  const ollamaModels = models?.models?.filter((m: any) => m.name) || [];
 
-    <label className="flex items-center gap-3">
-      <input
-        type="checkbox"
-        checked={data?.enabled ?? true}
-        onChange={(e) => onChange('enabled', e.target.checked)}
-        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-      />
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        Enable automatic title generation
-      </span>
-    </label>
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Title Generation</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Configure how chat titles are automatically generated
+        </p>
+      </div>
+
+      <label className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={data?.enabled ?? true}
+          onChange={(e) => onChange('enabled', e.target.checked)}
+          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+        />
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Enable automatic title generation
+        </span>
+      </label>
+
+      {/* Model Selection Strategy */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Model for Title Generation
+        </label>
+
+        <label className="flex items-start gap-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
+          <input
+            type="radio"
+            checked={data?.useCurrentChatModel ?? false}
+            onChange={() => onChange('useCurrentChatModel', true)}
+            className="mt-0.5 w-4 h-4 text-blue-600 focus:ring-blue-500"
+          />
+          <div className="flex-1">
+            <span className="text-sm font-medium text-gray-900 dark:text-white block">
+              Use Current Chat Model
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Generate titles with the same model used in the chat (may cost API tokens for remote models)
+            </span>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
+          <input
+            type="radio"
+            checked={!(data?.useCurrentChatModel ?? false)}
+            onChange={() => onChange('useCurrentChatModel', false)}
+            className="mt-0.5 w-4 h-4 text-blue-600 focus:ring-blue-500"
+          />
+          <div className="flex-1">
+            <span className="text-sm font-medium text-gray-900 dark:text-white block">
+              Use Specific Model
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 block mb-2">
+              Always use a specific model for title generation (recommended for cost control)
+            </span>
+
+            {!(data?.useCurrentChatModel ?? false) && (
+              <select
+                value={data?.specificModel || ''}
+                onChange={(e) => onChange('specificModel', e.target.value || null)}
+                className="mt-2 w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <option value="">Use first available Ollama model</option>
+                {ollamaModels.map((model: any) => (
+                  <option key={model.name} value={model.name}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </label>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+          💡 Tip: Using a small, fast Ollama model (like llama2 or mistral) keeps title generation free and fast!
+        </p>
+      </div>
 
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -288,7 +355,8 @@ const TitleGenerationSettings = ({
       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum title length in characters</p>
     </div>
   </div>
-);
+  );
+};
 
 // Model Defaults Settings Panel
 const ModelDefaultsSettings = ({

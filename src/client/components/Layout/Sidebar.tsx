@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { useChatStore } from '../../store/chatStore';
 import { useChats, useCreateChat, useDeleteChat } from '../../hooks/useChatsQuery';
-import { SystemPromptModal } from '../SystemPrompts/SystemPromptModal';
 import { ChatListSkeleton } from '../UI/Skeleton';
 import { toastUtils } from '../../utils/toast';
 
@@ -25,7 +24,6 @@ export const Sidebar = ({
   const { data: chats = [], isLoading: chatsLoading } = useChats();
   const createChatMutation = useCreateChat();
   const deleteChatMutation = useDeleteChat();
-  const [showSystemPrompts, setShowSystemPrompts] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleNewChat = async () => {
@@ -329,13 +327,6 @@ export const Sidebar = ({
               </svg>
               New Chat
             </button>
-
-            <button
-              onClick={() => setShowSystemPrompts(true)}
-              className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors text-sm"
-            >
-              System Prompts
-            </button>
           </div>
         )}
 
@@ -458,10 +449,6 @@ export const Sidebar = ({
           </div>
         )}
       </aside>
-
-      {showSystemPrompts && (
-        <SystemPromptModal onClose={() => setShowSystemPrompts(false)} />
-      )}
     </>
   );
 };

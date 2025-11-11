@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useSystemPrompts } from '../../hooks/useSystemPrompts';
+import { useSystemPrompts } from '../../hooks/useSystemPromptsQuery';
 
 interface SystemPromptSelectorProps {
   selectedPromptId?: string;
@@ -12,7 +12,7 @@ export const SystemPromptSelector = ({
   onPromptChange,
   disabled,
 }: SystemPromptSelectorProps) => {
-  const { systemPrompts } = useSystemPrompts();
+  const { data: systemPrompts = [], isLoading } = useSystemPrompts();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -90,7 +90,14 @@ export const SystemPromptSelector = ({
               </div>
             </button>
 
-            {systemPrompts.length === 0 ? (
+            {isLoading ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                  Loading prompts...
+                </div>
+              </div>
+            ) : systemPrompts.length === 0 ? (
               <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
                 No system prompts yet. Create one to get started!
               </div>

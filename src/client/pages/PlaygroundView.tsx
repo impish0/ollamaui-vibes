@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import { useChatStore } from '../store/chatStore';
+import { useCachedModels } from '../hooks/useModelsQuery';
+import { useSystemPrompts } from '../hooks/useSystemPromptsQuery';
 import { ModelParameters } from '../components/ModelParameters';
 import {
   Play, Plus, X, Copy, Download, RotateCcw, Settings2,
@@ -25,9 +27,14 @@ interface ModelSlot {
 }
 
 export function PlaygroundView() {
-  const { models, currentParameters } = useChatStore();
+  const { currentParameters } = useChatStore();
+  const { data: modelsData } = useCachedModels();
+  const { data: systemPrompts = [] } = useSystemPrompts();
+  const models = modelsData?.models || [];
+
   const [prompt, setPrompt] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
+  const [selectedSystemPromptId, setSelectedSystemPromptId] = useState<string>('');
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -80,6 +87,19 @@ export function PlaygroundView() {
     setModelSlots((slots) =>
       slots.map((slot) => (slot.id === id ? { ...slot, ...updates } : slot))
     );
+  };
+
+  // Handle system prompt selection
+  const handleSystemPromptChange = (promptId: string) => {
+    setSelectedSystemPromptId(promptId);
+    if (promptId) {
+      const selectedPrompt = systemPrompts.find((p) => p.id === promptId);
+      if (selectedPrompt) {
+        setSystemPrompt(selectedPrompt.content);
+      }
+    } else {
+      setSystemPrompt('');
+    }
   };
 
   const runComparison = async () => {
@@ -305,13 +325,33 @@ export function PlaygroundView() {
             rows={3}
           />
           {showSystemPrompt && (
-            <textarea
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="System prompt (optional)"
-              className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              rows={2}
-            />
+            <div className="space-y-2">
+              {/* System Prompt Selector */}
+              <select
+                value={selectedSystemPromptId}
+                onChange={(e) => handleSystemPromptChange(e.target.value)}
+                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Custom System Prompt</option>
+                {systemPrompts.map((sp) => (
+                  <option key={sp.id} value={sp.id}>
+                    {sp.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* System Prompt Content */}
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => {
+                  setSystemPrompt(e.target.value);
+                  setSelectedSystemPromptId(''); // Clear selection when manually editing
+                }}
+                placeholder="Enter custom system prompt or select one above"
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={3}
+              />
+            </div>
           )}
         </div>
 

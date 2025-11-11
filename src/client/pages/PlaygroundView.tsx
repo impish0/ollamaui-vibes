@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { useAllModels } from '../hooks/useAllModels';
-import { useSystemPrompts } from '../hooks/useSystemPromptsQuery';
+import { usePrompts } from '../hooks/usePromptsQuery';
 import { ModelParameters } from '../components/ModelParameters';
 import { ResponseAnalyzer } from '../components/Playground/ResponseAnalyzer';
 import { toastUtils } from '../utils/toast';
@@ -31,7 +31,11 @@ interface ModelSlot {
 export function PlaygroundView() {
   const { currentParameters, collections } = useChatStore();
   const { data: models = [] } = useAllModels();
-  const { data: systemPrompts = [] } = useSystemPrompts();
+  const { data: allPrompts = [] } = usePrompts({});
+  const systemPrompts = useMemo(
+    () => allPrompts.filter((p) => p.isSystemPrompt),
+    [allPrompts]
+  );
 
   const [prompt, setPrompt] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
@@ -136,7 +140,7 @@ export function PlaygroundView() {
     if (promptId) {
       const selectedPrompt = systemPrompts.find((p) => p.id === promptId);
       if (selectedPrompt) {
-        setSystemPrompt(selectedPrompt.content);
+        setSystemPrompt(selectedPrompt.currentVersion?.content || '');
       }
     } else {
       setSystemPrompt('');

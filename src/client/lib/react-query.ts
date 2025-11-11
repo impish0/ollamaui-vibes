@@ -71,10 +71,6 @@ export const queryKeys = {
     all: ['models'] as const,
     cached: ['models', 'cached'] as const,
   },
-  systemPrompts: {
-    all: ['system-prompts'] as const,
-    detail: (id: string) => ['system-prompts', id] as const,
-  },
   ollama: {
     health: ['ollama', 'health'] as const,
     config: ['ollama', 'config'] as const,

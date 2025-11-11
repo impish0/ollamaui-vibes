@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSettings, useUpdateSettings, useResetCategory } from '../../hooks/useSettingsQuery';
 import { useModels } from '../../hooks/useModelsQuery';
-import { useSystemPrompts } from '../../hooks/useSystemPromptsQuery';
+import { usePrompts } from '../../hooks/usePromptsQuery';
 import type { AppSettings } from '../../../shared/settings';
 import { Skeleton } from '../UI/Skeleton';
 import { ProviderSettings } from './ProviderSettings';
@@ -19,7 +19,11 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
 
   const { data: settings, isLoading } = useSettings();
   const { data: models } = useModels();
-  const { data: systemPrompts } = useSystemPrompts();
+  const { data: allPrompts = [] } = usePrompts({});
+  const systemPrompts = useMemo(
+    () => allPrompts.filter((p) => p.isSystemPrompt),
+    [allPrompts]
+  );
   const updateSettings = useUpdateSettings();
   const resetCategory = useResetCategory();
 

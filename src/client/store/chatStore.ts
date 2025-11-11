@@ -1,11 +1,10 @@
 import { create } from 'zustand';
-import type { Chat, Message, SystemPrompt, OllamaModel, Collection, ModelParameters } from '../../shared/types';
+import type { Chat, Message, OllamaModel, Collection, ModelParameters } from '../../shared/types';
 
 interface ChatStore {
   // State
   chats: Chat[];
   currentChatId: string | null;
-  systemPrompts: SystemPrompt[];
   models: OllamaModel[];
   lastModelsFetch: number;
   isStreaming: boolean;
@@ -34,11 +33,6 @@ interface ChatStore {
 
   addMessage: (chatId: string, message: Message) => void;
   updateMessage: (chatId: string, messageId: string, content: string) => void;
-
-  setSystemPrompts: (prompts: SystemPrompt[]) => void;
-  addSystemPrompt: (prompt: SystemPrompt) => void;
-  updateSystemPrompt: (promptId: string, updates: Partial<SystemPrompt>) => void;
-  deleteSystemPrompt: (promptId: string) => void;
 
   setModels: (models: OllamaModel[], lastFetch: number) => void;
 
@@ -72,7 +66,6 @@ export const useChatStore = create<ChatStore>((set) => ({
   // Initial state
   chats: [],
   currentChatId: null,
-  systemPrompts: [],
   models: [],
   lastModelsFetch: 0,
   isStreaming: false,
@@ -139,22 +132,6 @@ export const useChatStore = create<ChatStore>((set) => ({
           }
         : chat
     ),
-  })),
-
-  setSystemPrompts: (prompts) => set({ systemPrompts: prompts }),
-
-  addSystemPrompt: (prompt) => set((state) => ({
-    systemPrompts: [prompt, ...state.systemPrompts],
-  })),
-
-  updateSystemPrompt: (promptId, updates) => set((state) => ({
-    systemPrompts: state.systemPrompts.map((prompt) =>
-      prompt.id === promptId ? { ...prompt, ...updates } : prompt
-    ),
-  })),
-
-  deleteSystemPrompt: (promptId) => set((state) => ({
-    systemPrompts: state.systemPrompts.filter((prompt) => prompt.id !== promptId),
   })),
 
   setModels: (models, lastFetch) => set({ models, lastModelsFetch: lastFetch }),

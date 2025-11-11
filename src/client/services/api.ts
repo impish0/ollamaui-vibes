@@ -1,13 +1,10 @@
 import type {
   Chat,
   Message,
-  SystemPrompt,
   OllamaModel,
   CreateChatRequest,
   UpdateChatRequest,
   CreateMessageRequest,
-  CreateSystemPromptRequest,
-  UpdateSystemPromptRequest,
   PaginatedMessagesResponse,
 } from '../../shared/types';
 import type { AppSettings } from '../../shared/settings';
@@ -75,29 +72,6 @@ export const messagesApi = {
 
   delete: (id: string) =>
     fetch(`${API_BASE}/messages/${id}`, { method: 'DELETE' }),
-};
-
-// System Prompts API
-export const systemPromptsApi = {
-  getAll: () => fetchJson<SystemPrompt[]>(`${API_BASE}/system-prompts`),
-
-  getById: (id: string) =>
-    fetchJson<SystemPrompt>(`${API_BASE}/system-prompts/${id}`),
-
-  create: (data: CreateSystemPromptRequest) =>
-    fetchJson<SystemPrompt>(`${API_BASE}/system-prompts`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  update: (id: string, data: UpdateSystemPromptRequest) =>
-    fetchJson<SystemPrompt>(`${API_BASE}/system-prompts/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-
-  delete: (id: string) =>
-    fetch(`${API_BASE}/system-prompts/${id}`, { method: 'DELETE' }),
 };
 
 // Ollama API

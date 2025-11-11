@@ -3,7 +3,7 @@ export interface Chat {
   title: string | null;
   model: string;
   systemPromptId: string | null;
-  systemPrompt?: SystemPrompt | null;
+  systemPrompt?: PromptTemplate | null;
   messages?: Message[];
   createdAt: string;
   updatedAt: string;
@@ -16,14 +16,6 @@ export interface Message {
   content: string;
   model: string | null;
   createdAt: string;
-}
-
-export interface SystemPrompt {
-  id: string;
-  name: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface OllamaModel {
@@ -99,16 +91,6 @@ export interface CreateMessageRequest {
   role: 'user' | 'assistant' | 'system';
   content: string;
   model?: string;
-}
-
-export interface CreateSystemPromptRequest {
-  name: string;
-  content: string;
-}
-
-export interface UpdateSystemPromptRequest {
-  name?: string;
-  content?: string;
 }
 
 export interface Settings {

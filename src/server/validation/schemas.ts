@@ -34,29 +34,6 @@ export const streamChatSchema = z.object({
   collectionIds: z.array(z.string().cuid('Invalid collection ID')).optional(),
 });
 
-// System prompt schemas
-export const createSystemPromptSchema = z.object({
-  name: z.string()
-    .min(1, 'Name is required')
-    .max(100, 'Name too long (max 100 characters)')
-    .regex(/^[a-zA-Z0-9\s\-_]+$/, 'Name can only contain letters, numbers, spaces, hyphens, and underscores'),
-  content: z.string()
-    .min(1, 'Content is required')
-    .max(10000, 'Content too large (max 10KB)'),
-});
-
-export const updateSystemPromptSchema = z.object({
-  name: z.string()
-    .min(1, 'Name is required')
-    .max(100, 'Name too long (max 100 characters)')
-    .regex(/^[a-zA-Z0-9\s\-_]+$/, 'Name can only contain letters, numbers, spaces, hyphens, and underscores')
-    .optional(),
-  content: z.string()
-    .min(1, 'Content is required')
-    .max(10000, 'Content too large (max 10KB)')
-    .optional(),
-});
-
 // Ollama config schema
 export const updateOllamaConfigSchema = z.object({
   baseUrl: z.string()
@@ -81,17 +58,11 @@ export const chatIdParamSchema = z.object({
   chatId: z.string().cuid('Invalid chat ID'),
 });
 
-export const systemPromptIdParamSchema = z.object({
-  promptId: z.string().cuid('Invalid prompt ID'),
-});
-
 // Type exports for use in routes
 export type CreateChatInput = z.infer<typeof createChatSchema>;
 export type UpdateChatInput = z.infer<typeof updateChatSchema>;
 export type CreateMessageInput = z.infer<typeof createMessageSchema>;
 export type StreamChatInput = z.infer<typeof streamChatSchema>;
-export type CreateSystemPromptInput = z.infer<typeof createSystemPromptSchema>;
-export type UpdateSystemPromptInput = z.infer<typeof updateSystemPromptSchema>;
 export type UpdateOllamaConfigInput = z.infer<typeof updateOllamaConfigSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
 export type MessagesPaginationInput = z.infer<typeof messagesPaginationSchema>;

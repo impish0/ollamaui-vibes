@@ -9,7 +9,6 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { logger, logError, logInfo } from './utils/logger.js';
 import chatsRouter from './routes/chats.js';
 import messagesRouter from './routes/messages.js';
-import systemPromptsRouter from './routes/systemPrompts.js';
 import ollamaRouter from './routes/ollama.js';
 import modelsRouter from './routes/models.js';
 import playgroundRouter from './routes/playground.js';
@@ -44,7 +43,6 @@ app.use('/api', apiLimiter);
 // Routes
 app.use('/api/chats', chatsRouter);
 app.use('/api/messages', messagesRouter);
-app.use('/api/system-prompts', systemPromptsRouter);
 app.use('/api/ollama', ollamaRouter);
 app.use('/api/models', modelsRouter);
 app.use('/api/playground', playgroundRouter);

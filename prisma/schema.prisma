@@ -11,14 +11,14 @@ datasource db {
 }
 
 model Chat {
-  id             String        @id @default(cuid())
-  title          String?       // Max 500 chars, validated by Zod
-  model          String        // Last used model (max 200 chars)
+  id             String          @id @default(cuid())
+  title          String?         // Max 500 chars, validated by Zod
+  model          String          // Last used model (max 200 chars)
   systemPromptId String?
-  systemPrompt   SystemPrompt? @relation(fields: [systemPromptId], references: [id], onDelete: SetNull)
+  systemPrompt   PromptTemplate? @relation(fields: [systemPromptId], references: [id], onDelete: SetNull)
   messages       Message[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   // Indexes for common queries
   @@index([createdAt])
@@ -38,18 +38,6 @@ model Message {
   @@index([chatId, createdAt])
   // Index for role-based queries
   @@index([role])
-}
-
-model SystemPrompt {
-  id        String   @id @default(cuid())
-  name      String   @unique // Max 100 chars, alphanumeric + spaces/hyphens (validated by Zod)
-  content   String   // Max 10KB (validated by Zod)
-  chats     Chat[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([name])
-  @@index([createdAt])
 }
 
 model Settings {
@@ -136,6 +124,7 @@ model PromptTemplate {
   tags             String?           // JSON array of tags for search
   isFavorite       Boolean           @default(false)
   isSystemPrompt   Boolean           @default(false) // Can be used as system prompt in chats
+  chats            Chat[]            // Chats using this as system prompt
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 

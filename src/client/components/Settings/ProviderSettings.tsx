@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
 import { toastUtils } from '../../utils/toast';
 
 interface Provider {
@@ -62,9 +62,12 @@ export function ProviderSettings() {
   const [testing, setTesting] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, 'success' | 'error' | null>>({});
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState<Record<string, boolean>>({});
+  const [providerInfo, setProviderInfo] = useState<Record<string, { modelCount: number; updatedAt?: string }>>({});
 
   useEffect(() => {
     loadApiKeys();
+    loadProviderInfo();
   }, []);
 
   const loadApiKeys = async () => {
@@ -76,6 +79,28 @@ export function ProviderSettings() {
       }
     } catch (error) {
       console.error('Failed to load API keys:', error);
+    }
+  };
+
+  const loadProviderInfo = async () => {
+    try {
+      const response = await fetch('/api/providers/models');
+      if (response.ok) {
+        const data = await response.json();
+        // Group models by provider and count them
+        const info: Record<string, { modelCount: number; updatedAt?: string }> = {};
+        data.models.forEach((model: any) => {
+          if (model.provider) {
+            if (!info[model.provider]) {
+              info[model.provider] = { modelCount: 0 };
+            }
+            info[model.provider].modelCount++;
+          }
+        });
+        setProviderInfo(info);
+      }
+    } catch (error) {
+      console.error('Failed to load provider info:', error);
     }
   };
 
@@ -92,7 +117,10 @@ export function ProviderSettings() {
       });
 
       if (response.ok) {
-        toastUtils.success(`${PROVIDERS.find((p) => p.id === providerId)?.name} API key saved`);
+        const result = await response.json();
+        toastUtils.success(`${PROVIDERS.find((p) => p.id === providerId)?.name} API key saved (${result.modelCount} models found)`);
+        // Reload provider info to show model count
+        await loadProviderInfo();
       } else {
         throw new Error('Failed to save API key');
       }
@@ -100,6 +128,35 @@ export function ProviderSettings() {
       toastUtils.error('Failed to save API key');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRefresh = async (providerId: string) => {
+    if (!apiKeys[providerId]) {
+      toastUtils.error('Please save an API key first');
+      return;
+    }
+
+    setRefreshing((prev) => ({ ...prev, [providerId]: true }));
+
+    try {
+      const response = await fetch(`/api/providers/refresh/${providerId}`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toastUtils.success(`Models refreshed! Found ${result.modelCount} models`);
+        // Reload provider info
+        await loadProviderInfo();
+      } else {
+        const error = await response.json();
+        toastUtils.error(error.error || 'Failed to refresh models');
+      }
+    } catch (error) {
+      toastUtils.error('Failed to refresh models');
+    } finally {
+      setRefreshing((prev) => ({ ...prev, [providerId]: false }));
     }
   };
 
@@ -196,6 +253,11 @@ export function ProviderSettings() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {provider.description}
                     </p>
+                    {providerInfo[provider.id] && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        {providerInfo[provider.id].modelCount} models available
+                      </p>
+                    )}
                   </div>
                 </div>
                 <a
@@ -272,6 +334,27 @@ export function ProviderSettings() {
                       'Test Connection'
                     )}
                   </button>
+
+                  {hasKey && (
+                    <button
+                      onClick={() => handleRefresh(provider.id)}
+                      disabled={refreshing[provider.id]}
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2"
+                      title="Refresh available models"
+                    >
+                      {refreshing[provider.id] ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Refreshing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          Refresh Models
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   {hasKey && (
                     <button

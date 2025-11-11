@@ -316,7 +316,9 @@ router.post('/chat/stream', streamLimiter, validateBody(streamChatSchema), async
           model,
           messages,
           stream: true,
-          options: request.options
+          options: {
+            num_ctx: contextWindowSize
+          }
         })) {
           if (!chunk.done && chunk.content) {
             assistantResponse += chunk.content;

@@ -197,6 +197,57 @@ router.get('/models', async (_req, res, _next) => {
 });
 
 /**
+ * POST /api/providers/refresh/:provider
+ * Refresh models list for a provider
+ */
+router.post('/refresh/:provider', async (req, res, _next) => {
+  try {
+    const { provider } = req.params;
+
+    if (!['openai', 'anthropic', 'groq', 'google'].includes(provider)) {
+      res.status(400).json({ error: 'Invalid provider' });
+      return;
+    }
+
+    // Get the provider's API key
+    const providerRecord = await prisma.provider.findUnique({
+      where: { name: provider },
+      select: { apiKey: true },
+    });
+
+    if (!providerRecord) {
+      res.status(404).json({ error: 'Provider not found. Please save an API key first.' });
+      return;
+    }
+
+    // Decrypt the API key
+    const apiKey = decryptApiKey(providerRecord.apiKey);
+
+    // Fetch fresh models
+    const models = await fetchProviderModels(provider, apiKey);
+
+    // Update the provider with new models
+    await prisma.provider.update({
+      where: { name: provider },
+      data: {
+        models: JSON.stringify(models),
+        updatedAt: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Models refreshed successfully',
+      modelCount: models.length,
+      models,
+    });
+  } catch (error) {
+    console.error('Error refreshing provider models:', error);
+    res.status(500).json({ error: 'Failed to refresh models' });
+  }
+});
+
+/**
  * DELETE /api/providers/keys/:provider
  * Remove a provider API key
  */

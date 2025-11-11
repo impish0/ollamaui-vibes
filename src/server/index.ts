@@ -19,6 +19,7 @@ import documentsRouter from './routes/documents.js';
 import logsRouter from './routes/logs.js';
 import promptsRouter from './routes/prompts.js';
 import promptCollectionsRouter from './routes/promptCollections.js';
+import providersRouter from './routes/providers.js';
 
 const app = express();
 const PORT = parseInt(process.env.SERVER_PORT || '3001', 10);
@@ -53,6 +54,7 @@ app.use('/api/documents', documentsRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/prompts', promptsRouter);
 app.use('/api/prompt-collections', promptCollectionsRouter);
+app.use('/api/providers', providersRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

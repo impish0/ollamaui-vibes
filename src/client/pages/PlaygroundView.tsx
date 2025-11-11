@@ -4,6 +4,7 @@ import { useCachedModels } from '../hooks/useModelsQuery';
 import { useSystemPrompts } from '../hooks/useSystemPromptsQuery';
 import { ModelParameters } from '../components/ModelParameters';
 import { ResponseAnalyzer } from '../components/Playground/ResponseAnalyzer';
+import { toastUtils } from '../utils/toast';
 import {
   Play, Plus, X, Copy, Download, RotateCcw, Settings2,
   Zap, Clock, Activity, CheckCircle2, AlertCircle, BarChart3
@@ -241,8 +242,13 @@ export function PlaygroundView() {
     );
   };
 
-  const copyResponse = (response: string) => {
-    navigator.clipboard.writeText(response);
+  const copyResponse = async (response: string) => {
+    try {
+      await navigator.clipboard.writeText(response);
+      toastUtils.success('Response copied to clipboard');
+    } catch (err) {
+      toastUtils.error('Failed to copy to clipboard');
+    }
   };
 
   const exportResults = () => {

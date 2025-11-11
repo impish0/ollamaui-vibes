@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCachedModels } from '../hooks/useModelsQuery';
-import { Trash2, Info, HardDrive, AlertCircle, CheckCircle, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { Trash2, Info, HardDrive, AlertCircle, CheckCircle, Loader2, Plus, RefreshCw, Search } from 'lucide-react';
 import type { OllamaModel } from '@shared/types';
 
 export function ModelsView() {
@@ -17,6 +17,7 @@ export function ModelsView() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Clear messages after 5 seconds
   useEffect(() => {
@@ -148,6 +149,14 @@ export function ModelsView() {
   };
 
   const sortedModels = [...models].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Filter models by search query
+  const filteredModels = searchQuery
+    ? sortedModels.filter((model) =>
+        model.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : sortedModels;
+
   const totalSize = models.reduce((sum, model) => sum + model.size, 0);
 
   return (
@@ -169,6 +178,20 @@ export function ModelsView() {
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
+        </div>
+
+        {/* Search */}
+        <div className="mt-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search models..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            />
+          </div>
         </div>
 
         {/* Stats */}
@@ -248,8 +271,19 @@ export function ModelsView() {
 
       {/* Models List */}
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid gap-4">
-          {sortedModels.map((model) => (
+        {filteredModels.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+            <Search className="w-12 h-12 mb-4" />
+            <p className="text-lg font-medium">No models found</p>
+            {searchQuery ? (
+              <p className="text-sm mt-1">Try a different search term</p>
+            ) : (
+              <p className="text-sm mt-1">Pull a model to get started</p>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {filteredModels.map((model) => (
             <div
               key={model.name}
               className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
@@ -319,15 +353,8 @@ export function ModelsView() {
               )}
             </div>
           ))}
-
-          {models.length === 0 && (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <HardDrive className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No models installed</p>
-              <p className="text-sm mt-1">Pull a model to get started</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Model Info Modal */}

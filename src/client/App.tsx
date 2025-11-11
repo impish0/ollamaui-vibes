@@ -8,6 +8,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Layout/Header';
 import { Sidebar } from './components/Layout/Sidebar';
 import { SettingsModal } from './components/Settings';
+import { KeyboardShortcutsModal } from './components/UI/KeyboardShortcutsModal';
 import { CollectionsPage } from './pages/Collections';
 import { LogsPage } from './pages/Logs';
 import { ModelsView } from './pages/ModelsView';
@@ -40,6 +41,7 @@ function App() {
   const createChatMutation = useCreateChat();
   const { data: modelsData } = useCachedModels();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'chat' | 'collections' | 'logs' | 'models' | 'playground' | 'prompts'>('chat');
 
   const models = modelsData?.models || [];
@@ -93,6 +95,12 @@ function App() {
         description: 'Open settings',
         handler: () => setIsSettingsOpen(true),
       },
+      {
+        key: '?',
+        ctrl: true,
+        description: 'Show keyboard shortcuts',
+        handler: () => setIsShortcutsOpen(true),
+      },
     ],
     [defaultModel, settings?.model.defaultSystemPromptId, createChatMutation, setCurrentChatId]
   );
@@ -136,6 +144,7 @@ function App() {
     <>
       <Toaster />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      {isShortcutsOpen && <KeyboardShortcutsModal onClose={() => setIsShortcutsOpen(false)} />}
       <div className="h-screen flex flex-col bg-white dark:bg-gray-950">
         <Header onOpenSettings={() => setIsSettingsOpen(true)} />
         <div className="flex-1 flex overflow-hidden">

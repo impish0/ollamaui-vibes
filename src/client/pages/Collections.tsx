@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import { useChatStore } from '../store/chatStore';
 import { toastUtils } from '../utils/toast';
 import type { Collection, OllamaModel } from '../../shared/types';
@@ -8,6 +9,7 @@ export function CollectionsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch collections on mount
   useEffect(() => {
@@ -96,6 +98,22 @@ export function CollectionsPage() {
             <span>New Collection</span>
           </button>
         </div>
+
+        {/* Search */}
+        {collections.length > 0 && (
+          <div className="mt-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search collections..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -117,18 +135,34 @@ export function CollectionsPage() {
               Create First Collection
             </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-            {collections.map((collection) => (
+        ) : (() => {
+          // Filter collections by search query
+          const filteredCollections = searchQuery
+            ? collections.filter((c) =>
+                c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                c.description?.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+            : collections;
+
+          return filteredCollections.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 p-8">
+              <Search className="w-12 h-12 mb-4" />
+              <p className="text-lg font-medium">No collections found</p>
+              <p className="text-sm mt-1">Try a different search term</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+              {filteredCollections.map((collection) => (
               <CollectionCard
                 key={collection.id}
                 collection={collection}
                 onSelect={() => setSelectedCollection(collection)}
                 onDelete={() => handleDelete(collection.id)}
               />
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modals */}

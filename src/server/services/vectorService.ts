@@ -13,7 +13,7 @@ import fs from 'fs';
  * - Fast similarity search with HNSW algorithm
  */
 class VectorService {
-  private indexes: Map<string, HierarchicalNSW> = new Map();
+  private indexes: Map<string, InstanceType<typeof HierarchicalNSW>> = new Map();
   private indexMetadata: Map<string, { dimension: number; maxElements: number }> = new Map();
   private vectorDataPath: string;
   private isInitialized = false;
@@ -109,7 +109,7 @@ class VectorService {
   /**
    * Get or create an index for a collection (private)
    */
-  private getOrCreateIndex(collectionId: string, dimension: number = 768): HierarchicalNSW {
+  private getOrCreateIndex(collectionId: string, dimension: number = 768): InstanceType<typeof HierarchicalNSW> {
     let index = this.indexes.get(collectionId);
 
     if (!index) {

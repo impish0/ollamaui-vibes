@@ -84,7 +84,7 @@ router.delete('/chat/:chatId', async (req, res, next) => {
 });
 
 // Get statistics
-router.get('/stats/summary', async (req, res, next) => {
+router.get('/stats/summary', async (_req, res, next) => {
   try {
     const [
       totalLogs,

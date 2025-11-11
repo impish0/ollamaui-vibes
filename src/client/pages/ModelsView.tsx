@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useChatStore } from '../store/chatStore';
-import { Download, Trash2, Info, HardDrive, AlertCircle, CheckCircle, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { Trash2, Info, HardDrive, AlertCircle, CheckCircle, Loader2, Plus, RefreshCw } from 'lucide-react';
 import type { OllamaModel } from '@shared/types';
 
 export function ModelsView() {

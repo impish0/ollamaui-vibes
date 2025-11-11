@@ -6,14 +6,6 @@ import { ApiError } from '../middleware/errorHandler.js';
 const router = Router();
 
 // Validation schemas
-const PullModelSchema = z.object({
-  name: z.string().min(1, 'Model name is required'),
-});
-
-const DeleteModelSchema = z.object({
-  name: z.string().min(1, 'Model name is required'),
-});
-
 const CreateModelSchema = z.object({
   name: z.string().min(1, 'Model name is required'),
   modelfile: z.string().min(1, 'Modelfile content is required'),

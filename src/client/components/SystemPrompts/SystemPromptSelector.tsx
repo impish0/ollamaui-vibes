@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useSystemPrompts } from '../../hooks/useSystemPrompts';
+import { useSystemPrompts } from '../../hooks/useSystemPromptsQuery';
 
 interface SystemPromptSelectorProps {
   selectedPromptId?: string;
@@ -12,7 +12,7 @@ export const SystemPromptSelector = ({
   onPromptChange,
   disabled,
 }: SystemPromptSelectorProps) => {
-  const { systemPrompts } = useSystemPrompts();
+  const { data: systemPrompts = [] } = useSystemPrompts();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

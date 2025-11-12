@@ -11,9 +11,25 @@ interface Provider {
   apiKeyPlaceholder: string;
   docsUrl: string;
   enabled: boolean;
+  requiresBaseUrl?: boolean; // For providers like LM Studio that need custom endpoint
+  baseUrlLabel?: string;
+  baseUrlPlaceholder?: string;
 }
 
 const PROVIDERS: Provider[] = [
+  {
+    id: 'lmstudio',
+    name: 'LM Studio',
+    icon: '🏠',
+    description: 'Local LM Studio server (OpenAI-compatible)',
+    apiKeyLabel: 'API Key (optional)',
+    apiKeyPlaceholder: 'Optional - leave empty if not required',
+    docsUrl: 'https://lmstudio.ai',
+    enabled: false,
+    requiresBaseUrl: true,
+    baseUrlLabel: 'Server URL',
+    baseUrlPlaceholder: 'http://localhost:1234',
+  },
   {
     id: 'openai',
     name: 'OpenAI',
@@ -58,6 +74,7 @@ const PROVIDERS: Provider[] = [
 
 export function ProviderSettings() {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  const [baseUrls, setBaseUrls] = useState<Record<string, string>>({});
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [testing, setTesting] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, 'success' | 'error' | null>>({});
@@ -105,27 +122,46 @@ export function ProviderSettings() {
   };
 
   const handleSave = async (providerId: string) => {
+    const provider = PROVIDERS.find((p) => p.id === providerId);
+
+    // Validate required fields
+    if (provider?.requiresBaseUrl && !baseUrls[providerId]) {
+      toastUtils.error('Please enter a server URL');
+      return;
+    }
+
     setSaving(true);
     try {
+      const body: any = {
+        provider: providerId,
+      };
+
+      // Add API key if provided (optional for some providers like lmstudio)
+      if (apiKeys[providerId]) {
+        body.apiKey = apiKeys[providerId];
+      }
+
+      // Add base URL if provider requires it
+      if (provider?.requiresBaseUrl) {
+        body.baseUrl = baseUrls[providerId];
+      }
+
       const response = await fetch('/api/providers/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: providerId,
-          apiKey: apiKeys[providerId] || '',
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
         const result = await response.json();
-        toastUtils.success(`${PROVIDERS.find((p) => p.id === providerId)?.name} API key saved (${result.modelCount} models found)`);
+        toastUtils.success(`${provider?.name} configured successfully (${result.modelCount} models found)`);
         // Reload provider info to show model count
         await loadProviderInfo();
       } else {
-        throw new Error('Failed to save API key');
+        throw new Error('Failed to save configuration');
       }
     } catch (error) {
-      toastUtils.error('Failed to save API key');
+      toastUtils.error('Failed to save configuration');
     } finally {
       setSaving(false);
     }
@@ -161,7 +197,14 @@ export function ProviderSettings() {
   };
 
   const handleTest = async (providerId: string) => {
-    if (!apiKeys[providerId]) {
+    const provider = PROVIDERS.find((p) => p.id === providerId);
+
+    // Validate required fields
+    if (provider?.requiresBaseUrl && !baseUrls[providerId]) {
+      toastUtils.error('Please enter a server URL');
+      return;
+    }
+    if (!provider?.requiresBaseUrl && !apiKeys[providerId]) {
       toastUtils.error('Please enter an API key first');
       return;
     }
@@ -170,25 +213,34 @@ export function ProviderSettings() {
     setTestResults((prev) => ({ ...prev, [providerId]: null }));
 
     try {
+      const body: any = {
+        provider: providerId,
+      };
+
+      if (apiKeys[providerId]) {
+        body.apiKey = apiKeys[providerId];
+      }
+
+      if (provider?.requiresBaseUrl) {
+        body.baseUrl = baseUrls[providerId];
+      }
+
       const response = await fetch('/api/providers/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: providerId,
-          apiKey: apiKeys[providerId],
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
         setTestResults((prev) => ({ ...prev, [providerId]: 'success' }));
-        toastUtils.success('API key is valid!');
+        toastUtils.success('Connection successful!');
       } else {
         setTestResults((prev) => ({ ...prev, [providerId]: 'error' }));
-        toastUtils.error('API key is invalid');
+        toastUtils.error('Connection failed');
       }
     } catch (error) {
       setTestResults((prev) => ({ ...prev, [providerId]: 'error' }));
-      toastUtils.error('Failed to test API key');
+      toastUtils.error('Failed to test connection');
     } finally {
       setTesting((prev) => ({ ...prev, [providerId]: false }));
     }
@@ -270,6 +322,26 @@ export function ProviderSettings() {
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
+
+              {/* Base URL Input (for providers like LM Studio) */}
+              {provider.requiresBaseUrl && (
+                <div className="space-y-3 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {provider.baseUrlLabel}
+                    </label>
+                    <input
+                      type="text"
+                      value={baseUrls[provider.id] || ''}
+                      onChange={(e) =>
+                        setBaseUrls((prev) => ({ ...prev, [provider.id]: e.target.value }))
+                      }
+                      placeholder={provider.baseUrlPlaceholder}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* API Key Input */}
               <div className="space-y-3">

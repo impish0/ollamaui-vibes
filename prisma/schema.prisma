@@ -155,8 +155,9 @@ model PromptVersion {
 // API Provider Management
 model Provider {
   id          String   @id @default(cuid())
-  name        String   @unique // 'openai', 'anthropic', 'groq', 'google'
-  apiKey      String   // Encrypted API key
+  name        String   @unique // 'openai', 'anthropic', 'groq', 'google', 'lmstudio'
+  apiKey      String   // Encrypted API key (optional for local providers like lmstudio)
+  baseUrl     String?  // Custom base URL for providers like LM Studio (e.g., http://localhost:1234)
   enabled     Boolean  @default(true)
   models      String?  // JSON array of available models
   lastTested  DateTime?

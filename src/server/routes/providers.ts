@@ -8,13 +8,15 @@ const prisma = new PrismaClient();
 
 // Validation schemas
 const SaveKeySchema = z.object({
-  provider: z.enum(['openai', 'anthropic', 'groq', 'google']),
-  apiKey: z.string().min(1),
+  provider: z.enum(['openai', 'anthropic', 'groq', 'google', 'lmstudio']),
+  apiKey: z.string().optional(), // Optional for lmstudio
+  baseUrl: z.string().url().optional(), // For lmstudio custom endpoint
 });
 
 const TestKeySchema = z.object({
-  provider: z.enum(['openai', 'anthropic', 'groq', 'google']),
-  apiKey: z.string().min(1),
+  provider: z.enum(['openai', 'anthropic', 'groq', 'google', 'lmstudio']),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().url().optional(),
 });
 
 /**
@@ -52,15 +54,15 @@ router.get('/keys', async (_req, res, _next) => {
  */
 router.post('/keys', async (req, res, _next) => {
   try {
-    const { provider, apiKey } = SaveKeySchema.parse(req.body);
+    const { provider, apiKey, baseUrl } = SaveKeySchema.parse(req.body);
 
-    // Encrypt the API key
-    const encryptedKey = encryptApiKey(apiKey);
+    // Encrypt the API key (use empty string if not provided, e.g., for lmstudio)
+    const encryptedKey = encryptApiKey(apiKey || '');
 
     // Fetch available models from the provider
     let models: string[] = [];
     try {
-      models = await fetchProviderModels(provider, apiKey);
+      models = await fetchProviderModels(provider, apiKey || '', baseUrl);
     } catch (error) {
       console.warn(`Failed to fetch models for ${provider}:`, error);
       // Continue even if model fetch fails
@@ -71,6 +73,7 @@ router.post('/keys', async (req, res, _next) => {
       where: { name: provider },
       update: {
         apiKey: encryptedKey,
+        baseUrl: baseUrl || null,
         enabled: true,
         models: JSON.stringify(models),
         updatedAt: new Date(),
@@ -78,6 +81,7 @@ router.post('/keys', async (req, res, _next) => {
       create: {
         name: provider,
         apiKey: encryptedKey,
+        baseUrl: baseUrl || null,
         enabled: true,
         models: JSON.stringify(models),
       },
@@ -85,7 +89,7 @@ router.post('/keys', async (req, res, _next) => {
 
     res.json({
       success: true,
-      message: 'API key saved successfully',
+      message: 'Provider configured successfully',
       modelCount: models.length
     });
   } catch (error) {
@@ -94,7 +98,7 @@ router.post('/keys', async (req, res, _next) => {
       return;
     }
     console.error('Error saving provider key:', error);
-    res.status(500).json({ error: 'Failed to save API key' });
+    res.status(500).json({ error: 'Failed to save provider configuration' });
   }
 });
 
@@ -104,7 +108,7 @@ router.post('/keys', async (req, res, _next) => {
  */
 router.post('/test', async (req, res, _next) => {
   try {
-    const { provider, apiKey } = TestKeySchema.parse(req.body);
+    const { provider, apiKey, baseUrl } = TestKeySchema.parse(req.body);
 
     let isValid = false;
     let error: string | null = null;
@@ -112,16 +116,19 @@ router.post('/test', async (req, res, _next) => {
     // Test the API key with a simple request
     switch (provider) {
       case 'openai':
-        isValid = await testOpenAI(apiKey);
+        isValid = await testOpenAI(apiKey || '');
         break;
       case 'anthropic':
-        isValid = await testAnthropic(apiKey);
+        isValid = await testAnthropic(apiKey || '');
         break;
       case 'groq':
-        isValid = await testGroq(apiKey);
+        isValid = await testGroq(apiKey || '');
         break;
       case 'google':
-        isValid = await testGoogle(apiKey);
+        isValid = await testGoogle(apiKey || '');
+        break;
+      case 'lmstudio':
+        isValid = await testLMStudio(apiKey || '', baseUrl || 'http://localhost:1234');
         break;
       default:
         error = 'Unknown provider';
@@ -204,19 +211,19 @@ router.post('/refresh/:provider', async (req, res, _next) => {
   try {
     const { provider } = req.params;
 
-    if (!['openai', 'anthropic', 'groq', 'google'].includes(provider)) {
+    if (!['openai', 'anthropic', 'groq', 'google', 'lmstudio'].includes(provider)) {
       res.status(400).json({ error: 'Invalid provider' });
       return;
     }
 
-    // Get the provider's API key
+    // Get the provider's API key and baseUrl
     const providerRecord = await prisma.provider.findUnique({
       where: { name: provider },
-      select: { apiKey: true },
+      select: { apiKey: true, baseUrl: true },
     });
 
     if (!providerRecord) {
-      res.status(404).json({ error: 'Provider not found. Please save an API key first.' });
+      res.status(404).json({ error: 'Provider not found. Please configure it first.' });
       return;
     }
 
@@ -224,7 +231,7 @@ router.post('/refresh/:provider', async (req, res, _next) => {
     const apiKey = decryptApiKey(providerRecord.apiKey);
 
     // Fetch fresh models
-    const models = await fetchProviderModels(provider, apiKey);
+    const models = await fetchProviderModels(provider, apiKey, providerRecord.baseUrl || undefined);
 
     // Update the provider with new models
     await prisma.provider.update({
@@ -255,7 +262,7 @@ router.delete('/keys/:provider', async (req, res, _next) => {
   try {
     const { provider } = req.params;
 
-    if (!['openai', 'anthropic', 'groq', 'google'].includes(provider)) {
+    if (!['openai', 'anthropic', 'groq', 'google', 'lmstudio'].includes(provider)) {
       res.status(400).json({ error: 'Invalid provider' });
       return;
     }
@@ -264,15 +271,15 @@ router.delete('/keys/:provider', async (req, res, _next) => {
       where: { name: provider },
     });
 
-    res.json({ success: true, message: 'API key removed successfully' });
+    res.json({ success: true, message: 'Provider configuration removed successfully' });
   } catch (error) {
-    console.error('Error deleting provider key:', error);
-    res.status(500).json({ error: 'Failed to remove API key' });
+    console.error('Error deleting provider:', error);
+    res.status(500).json({ error: 'Failed to remove provider' });
   }
 });
 
 // Fetch available models from a provider
-async function fetchProviderModels(provider: string, apiKey: string): Promise<string[]> {
+async function fetchProviderModels(provider: string, apiKey: string, baseUrl?: string): Promise<string[]> {
   switch (provider) {
     case 'openai':
       return await fetchOpenAIModels(apiKey);
@@ -282,6 +289,8 @@ async function fetchProviderModels(provider: string, apiKey: string): Promise<st
       return await fetchGroqModels(apiKey);
     case 'google':
       return await fetchGoogleModels(apiKey);
+    case 'lmstudio':
+      return await fetchLMStudioModels(apiKey, baseUrl || 'http://localhost:1234');
     default:
       return [];
   }
@@ -410,6 +419,45 @@ async function testGoogle(apiKey: string): Promise<boolean> {
     return response.ok;
   } catch (error) {
     console.error('Google test error:', error);
+    return false;
+  }
+}
+
+// LM Studio functions
+async function fetchLMStudioModels(apiKey: string, baseUrl: string): Promise<string[]> {
+  try {
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    const response = await fetch(`${baseUrl}/v1/models`, {
+      headers,
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.data?.map((model: any) => model.id)?.sort() || [];
+  } catch (error) {
+    console.error('Error fetching LM Studio models:', error);
+    return [];
+  }
+}
+
+async function testLMStudio(apiKey: string, baseUrl: string): Promise<boolean> {
+  try {
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    const response = await fetch(`${baseUrl}/v1/models`, {
+      headers,
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('LM Studio test error:', error);
     return false;
   }
 }

@@ -9,7 +9,7 @@ export interface StreamChunk {
 
 /**
  * Provider Service - Routes chat requests to different AI providers
- * Supports: OpenAI, Anthropic, Groq, Google AI
+ * Supports: OpenAI, Anthropic, Groq, Google AI, LM Studio
  */
 class ProviderService {
   /**
@@ -60,29 +60,45 @@ class ProviderService {
   }
 
   /**
+   * Get base URL for a provider (for providers with custom endpoints like LM Studio)
+   */
+  async getBaseUrl(providerName: string): Promise<string | null> {
+    const provider = await prisma.provider.findUnique({
+      where: { name: providerName },
+      select: { baseUrl: true },
+    });
+
+    return provider?.baseUrl || null;
+  }
+
+  /**
    * Stream chat completion from any provider
    */
   async *streamChat(
     provider: string,
     request: ChatCompletionRequest
   ): AsyncGenerator<StreamChunk> {
+    // LM Studio may not require an API key (local server)
     const apiKey = await this.getApiKey(provider);
-    if (!apiKey) {
+    if (!apiKey && provider !== 'lmstudio') {
       throw new Error(`No API key found for provider: ${provider}`);
     }
 
     switch (provider) {
       case 'openai':
-        yield* this.streamOpenAI(apiKey, request);
+        yield* this.streamOpenAI(apiKey!, request);
         break;
       case 'anthropic':
-        yield* this.streamAnthropic(apiKey, request);
+        yield* this.streamAnthropic(apiKey!, request);
         break;
       case 'groq':
-        yield* this.streamGroq(apiKey, request);
+        yield* this.streamGroq(apiKey!, request);
         break;
       case 'google':
-        yield* this.streamGoogle(apiKey, request);
+        yield* this.streamGoogle(apiKey!, request);
+        break;
+      case 'lmstudio':
+        yield* this.streamLMStudio(apiKey || '', request);
         break;
       default:
         throw new Error(`Unsupported provider: ${provider}`);
@@ -384,6 +400,84 @@ class ProviderService {
             }
           } catch (e) {
             console.error('Failed to parse Google chunk:', e);
+          }
+        }
+      }
+
+      yield { content: '', done: true };
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  /**
+   * LM Studio Streaming (OpenAI-compatible, local server)
+   */
+  private async *streamLMStudio(
+    apiKey: string,
+    request: ChatCompletionRequest
+  ): AsyncGenerator<StreamChunk> {
+    // Get custom base URL for LM Studio (default: http://localhost:1234)
+    const baseUrl = await this.getBaseUrl('lmstudio') || 'http://localhost:1234';
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add API key if provided (some LM Studio setups may require it)
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: request.model,
+        messages: request.messages,
+        stream: true,
+        temperature: request.options?.temperature,
+        top_p: request.options?.top_p,
+        max_tokens: request.options?.num_predict,
+        stop: request.options?.stop,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`LM Studio API error: ${response.status} - ${error}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body from LM Studio');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed === 'data: [DONE]') continue;
+          if (!trimmed.startsWith('data: ')) continue;
+
+          try {
+            const data = JSON.parse(trimmed.slice(6));
+            const content = data.choices?.[0]?.delta?.content;
+            if (content) {
+              yield { content, done: false };
+            }
+          } catch (e) {
+            console.error('Failed to parse LM Studio chunk:', e);
           }
         }
       }
